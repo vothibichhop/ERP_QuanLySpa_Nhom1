@@ -5,6 +5,17 @@
         <field name="model">hr.employee</field>
         <field name="inherit_id" ref="hr.view_employee_form"/>
         <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_spa_view_sales_commissions"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-money"
+                        groups="spa.group_customer_management_manager,hr.group_hr_manager,base.group_system">
+                    <field name="spa_sales_commission_order_count"
+                           widget="statinfo"
+                           string="Hoa hồng"/>
+                </button>
+            </xpath>
             <xpath expr="//notebook" position="inside">
                 <page name="spa_employee_information" string="Thông tin nhân sự">
                     <group>
@@ -13,6 +24,55 @@
                         <field name="employment_status"/>
                     </group>
                 </page>
+                <page name="spa_employee_services" string="Dịch vụ có thể thực hiện">
+                    <field name="spa_service_ids"
+                           widget="many2many_tags"
+                           domain="[('type', '=', 'service')]"/>
+                </page>
+                <page name="spa_employee_shifts" string="Lịch ca làm việc">
+                    <field name="shift_ids">
+                        <list>
+                            <field name="name"/>
+                            <field name="start_datetime"/>
+                            <field name="end_datetime"/>
+                            <field name="state" widget="badge"/>
+                        </list>
+                    </field>
+                </page>
+                <page name="spa_employee_leaves" string="Nghỉ phép">
+                    <field name="leave_ids">
+                        <list>
+                            <field name="leave_type"/>
+                            <field name="start_date"/>
+                            <field name="start_session"/>
+                            <field name="end_date"/>
+                            <field name="end_session"/>
+                            <field name="total_sessions"/>
+                            <field name="state" widget="badge"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_employee_kanban_spa_commission" model="ir.ui.view">
+        <field name="name">hr.employee.kanban.spa.commission</field>
+        <field name="model">hr.employee</field>
+        <field name="inherit_id" ref="hr.hr_kanban_view_employees"/>
+        <field name="arch" type="xml">
+            <xpath expr="//kanban" position="inside">
+                <field name="spa_sales_commission_order_count"/>
+            </xpath>
+            <xpath expr="//t[@t-name='card']//footer/div" position="inside">
+                <button name="action_spa_view_sales_commissions"
+                        type="object"
+                        class="btn btn-link p-0"
+                        groups="spa.group_customer_management_manager,hr.group_hr_manager,base.group_system">
+                    <i class="fa fa-money me-1"/>
+                    Hoa hồng
+                    (<field name="spa_sales_commission_order_count"/>)
+                </button>
             </xpath>
         </field>
     </record>

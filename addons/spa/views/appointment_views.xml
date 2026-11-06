@@ -71,12 +71,18 @@
                                     <field name="product_id"
                                            domain="[('type', 'in', ('service', 'combo'))]"/>
                                     <field name="duration_minutes" required="1"/>
+                                    <field name="available_employee_ids" invisible="1"/>
+                                    <field name="employee_id"
+                                           domain="[('id', 'in', available_employee_ids)]"/>
                                 </list>
                                 <form>
                                     <group>
                                         <field name="product_id"
                                                domain="[('type', 'in', ('service', 'combo'))]"/>
                                         <field name="duration_minutes"/>
+                                        <field name="available_employee_ids" invisible="1"/>
+                                        <field name="employee_id"
+                                               domain="[('id', 'in', available_employee_ids)]"/>
                                     </group>
                                     <group string="Lựa chọn dịch vụ trong combo"
                                            invisible="product_id.type != 'combo'">
@@ -107,7 +113,10 @@
                         </group>
                     </group>
                     <group string="Nguồn lực phục vụ">
-                        <field name="employee_id" required="1"/>
+                        <field name="available_employee_ids" invisible="1"/>
+                        <field name="employee_id"
+                               domain="[('id', 'in', available_employee_ids)]"
+                               required="1"/>
                         <field name="available_room_ids" invisible="1"/>
                         <field name="available_bed_ids" invisible="1"/>
                         <field name="resource_grid" widget="spa_resource_grid"
@@ -122,6 +131,19 @@
                         <field name="invoice_id" invisible="not invoice_id"/>
                         <field name="invoice_payment_state" widget="badge"
                                invisible="not invoice_id"/>
+                    </group>
+                    <group string="Xuất nguyên vật liệu"
+                           groups="stock.group_stock_user"
+                           invisible="not spa_material_picking_ids">
+                        <field name="spa_material_picking_ids" nolabel="1">
+                            <list create="0" edit="0" delete="0">
+                                <field name="name"/>
+                                <field name="scheduled_date"/>
+                                <field name="location_id"/>
+                                <field name="location_dest_id"/>
+                                <field name="state" widget="badge"/>
+                            </list>
+                        </field>
                     </group>
                     <div class="text-muted" invisible="not service_duration_minutes">
                         Hãy nhập thời lượng từng dịch vụ; giờ kết thúc được đề xuất theo tổng thời lượng chạy nối tiếp.

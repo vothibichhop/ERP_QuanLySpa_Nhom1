@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_spa_work_shift_calendar" model="ir.ui.view">
+        <field name="name">spa.work.shift.calendar</field>
+        <field name="model">spa.work.shift</field>
+        <field name="arch" type="xml">
+            <calendar string="Ca làm việc"
+                      date_start="start_datetime"
+                      date_stop="end_datetime"
+                      color="state"
+                      mode="week">
+                <field name="work_date"/>
+                <field name="employee_ids" widget="many2many_tags"/>
+                <field name="state"/>
+            </calendar>
+        </field>
+    </record>
+
+    <record id="view_spa_work_shift_list" model="ir.ui.view">
+        <field name="name">spa.work.shift.list</field>
+        <field name="model">spa.work.shift</field>
+        <field name="arch" type="xml">
+            <list string="Ca làm việc"
+                  decoration-muted="state == 'cancelled'"
+                  default_order="start_datetime">
+                <field name="name"/>
+                <field name="work_date"/>
+                <field name="shift_type"/>
+                <field name="employee_ids" widget="many2many_tags"/>
+                <field name="start_datetime"/>
+                <field name="end_datetime"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_work_shift_form" model="ir.ui.view">
+        <field name="name">spa.work.shift.form</field>
+        <field name="model">spa.work.shift</field>
+        <field name="arch" type="xml">
+            <form string="Ca làm việc">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="work_date"/>
+                            <field name="shift_type"/>
+                            <field name="employee_ids" widget="many2many_tags"/>
+                            <field name="state"/>
+                        </group>
+                        <group>
+                            <field name="start_datetime" readonly="1"/>
+                            <field name="end_datetime" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="notes" placeholder="Ghi chú về ca trực..."/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_spa_work_shift_search" model="ir.ui.view">
+        <field name="name">spa.work.shift.search</field>
+        <field name="model">spa.work.shift</field>
+        <field name="arch" type="xml">
+            <search string="Tìm ca làm việc">
+                <field name="name"/>
+                <field name="employee_ids"/>
+                <field name="work_date"/>
+                <filter name="scheduled" string="Đã xếp lịch"
+                        domain="[('state', '=', 'scheduled')]"/>
+                <filter name="completed" string="Đã hoàn thành"
+                        domain="[('state', '=', 'completed')]"/>
+                <filter name="cancelled" string="Đã hủy"
+                        domain="[('state', '=', 'cancelled')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_employee" string="Nhân viên"
+                            context="{'group_by': 'employee_ids'}"/>
+                    <filter name="group_state" string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_spa_work_shift" model="ir.actions.act_window">
+        <field name="name">Ca làm việc</field>
+        <field name="res_model">spa.work.shift</field>
+        <field name="view_mode">calendar,list,form</field>
+        <field name="search_view_id" ref="view_spa_work_shift_search"/>
+    </record>
+
+    <menuitem id="menu_spa_work_shift"
+              name="Ca làm việc"
+              parent="hr.menu_hr_root"
+              action="action_spa_work_shift"
+              sequence="5"
+              groups="spa.group_customer_management_user"/>
+
+</odoo>

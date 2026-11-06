@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="ir_cron_spa_daily_guard_shift" model="ir.cron">
+        <field name="name">Spa: tạo ca bảo vệ hằng ngày</field>
+        <field name="model_id" ref="model_spa_work_shift"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_create_daily_guard_shift()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+    </record>
+</odoo>

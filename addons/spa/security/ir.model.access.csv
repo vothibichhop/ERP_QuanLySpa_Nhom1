@@ -19,3 +19,7 @@ access_spa_appointment_line_user,spa.appointment.line.user,model_spa_appointment
 access_spa_appointment_line_manager,spa.appointment.line.manager,model_spa_appointment_line,group_customer_management_manager,1,1,1,1
 access_spa_appointment_combo_choice_user,spa.appointment.combo.choice.user,model_spa_appointment_combo_choice,group_customer_management_user,1,1,1,1
 access_spa_appointment_combo_choice_manager,spa.appointment.combo.choice.manager,model_spa_appointment_combo_choice,group_customer_management_manager,1,1,1,1
+access_spa_work_shift_user,spa.work.shift.user,model_spa_work_shift,group_customer_management_user,1,1,1,0
+access_spa_work_shift_manager,spa.work.shift.manager,model_spa_work_shift,group_customer_management_manager,1,1,1,1
+access_spa_leave_request_user,spa.leave.request.user,model_spa_leave_request,group_customer_management_user,1,1,1,0
+access_spa_leave_request_manager,spa.leave.request.manager,model_spa_leave_request,group_customer_management_manager,1,1,1,1

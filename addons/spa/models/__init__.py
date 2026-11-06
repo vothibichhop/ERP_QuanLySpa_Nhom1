@@ -13,3 +13,5 @@ from . import sale_order
 from . import account_move
 from . import invoice_line
 from . import hr_employee
+from . import leave
+from . import work_shift
