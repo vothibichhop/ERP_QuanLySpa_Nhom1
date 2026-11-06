@@ -8,7 +8,7 @@
                 <field name="partner_id"/>
                 <field name="need_type"/>
                 <field name="next_date"/>
-                <field name="user_id"/>
+                <field name="employee_id"/>
                 <field name="state"/>
             </list>
         </field>
@@ -27,7 +27,7 @@
                 <sheet>
                     <group>
                         <group><field name="name"/><field name="partner_id"/><field name="need_type"/></group>
-                        <group><field name="user_id"/><field name="next_date"/></group>
+                        <group><field name="employee_id"/><field name="next_date"/></group>
                     </group>
                     <group><field name="description"/></group>
                     <chatter/>
@@ -40,11 +40,11 @@
         <field name="model">customer.care.need</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name"/><field name="partner_id"/><field name="user_id"/>
+                <field name="name"/><field name="partner_id"/><field name="employee_id"/>
                 <filter name="new" string="Mới" domain="[('state','=','new')]"/>
                 <filter name="processing" string="Đang xử lý" domain="[('state','=','processing')]"/>
                 <filter name="overdue" string="Quá hạn" domain="[('next_date','&lt;',context_today().strftime('%Y-%m-%d')),('state','not in',('done','cancel'))]"/>
-                <group expand="0" string="Nhóm theo"><filter name="group_state" string="Trạng thái" context="{'group_by':'state'}"/><filter name="group_user" string="Nhân viên" context="{'group_by':'user_id'}"/></group>
+                <group expand="0" string="Nhóm theo"><filter name="group_state" string="Trạng thái" context="{'group_by':'state'}"/><filter name="group_employee" string="Nhân viên" context="{'group_by':'employee_id'}"/></group>
             </search>
         </field>
     </record>

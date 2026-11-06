@@ -36,7 +36,6 @@
                                 <list>
                                     <field name="date"/>
                                     <field name="name"/>
-                                    <field name="transaction_type"/>
                                     <field name="points"/>
                                     <field name="state"/>
                                     <field name="applied_by"/>

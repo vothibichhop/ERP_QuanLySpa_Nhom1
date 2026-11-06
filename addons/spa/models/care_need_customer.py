@@ -24,8 +24,14 @@ class CustomerCareNeed(models.Model):
         ('cancel', 'Đã hủy'),
     ], string='Trạng thái', default='new', required=True, tracking=True)
     next_date = fields.Date(string='Ngày chăm sóc tiếp theo')
-    user_id = fields.Many2one(
-        'res.users', string='Nhân viên phụ trách', default=lambda self: self.env.user
+    employee_id = fields.Many2one(
+        'hr.employee',
+        string='Nhân viên phụ trách',
+        domain=[('active', '=', True)],
+        default=lambda self: self.env['hr.employee'].search(
+            [('user_id', '=', self.env.user.id), ('active', '=', True)],
+            limit=1,
+        ),
     )
 
     def action_start(self):

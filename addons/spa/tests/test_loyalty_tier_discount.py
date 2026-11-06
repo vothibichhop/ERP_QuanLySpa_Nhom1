@@ -25,6 +25,88 @@ class TestSpaLoyaltyTierDiscount(TransactionCase):
         self.assertEqual(get_customer_type(1999), 'gold')
         self.assertEqual(get_customer_type(2000), 'diamond')
 
+    def test_new_customer_uses_base_pricelist_instead_of_tier_pricelist(self):
+        company = self.env.company
+        base_pricelist = self.env['product.pricelist'].create({
+            'name': 'SPA Test Base Pricelist',
+            'currency_id': company.currency_id.id,
+            'company_id': company.id,
+            'sequence': 1,
+        })
+        tier_pricelist = self.env['product.pricelist'].create({
+            'name': 'SPA Test Silver Pricelist',
+            'currency_id': company.currency_id.id,
+            'company_id': company.id,
+        })
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': tier_pricelist.id,
+            'applied_on': '1_product',
+            'product_tmpl_id': self.product.product_tmpl_id.id,
+            'compute_price': 'fixed',
+            'fixed_price': 50.0,
+        })
+        self.partner.write({
+            'customer_type': 'new',
+            'property_product_pricelist': tier_pricelist.id,
+        })
+
+        order = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+        })
+        line = self.env['sale.order.line'].create({
+            'order_id': order.id,
+            'product_id': self.product.id,
+            'product_uom_qty': 1.0,
+        })
+
+        self.assertEqual(order.pricelist_id, base_pricelist)
+        self.assertAlmostEqual(line.price_unit, self.product.list_price)
+
+    def test_new_customer_creates_base_pricelist_when_missing(self):
+        company = self.env.company
+        pricelist_model = self.env['product.pricelist']
+        base_domain = [
+            ('active', '=', True),
+            ('currency_id', '=', company.currency_id.id),
+            ('item_ids', '=', False),
+        ]
+        existing_base_pricelists = pricelist_model.search(
+            base_domain + [('company_id', '=', company.id)]
+        ) | pricelist_model.search(
+            base_domain + [('company_id', '=', False)]
+        )
+        existing_base_pricelists.write({'active': False})
+
+        tier_pricelist = pricelist_model.create({
+            'name': 'SPA Test Silver Pricelist Without Base',
+            'currency_id': company.currency_id.id,
+            'company_id': company.id,
+        })
+        self.env['product.pricelist.item'].create({
+            'pricelist_id': tier_pricelist.id,
+            'applied_on': '1_product',
+            'product_tmpl_id': self.product.product_tmpl_id.id,
+            'compute_price': 'fixed',
+            'fixed_price': 50.0,
+        })
+        self.partner.write({
+            'customer_type': 'new',
+            'property_product_pricelist': tier_pricelist.id,
+        })
+
+        order = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+        })
+        line = self.env['sale.order.line'].create({
+            'order_id': order.id,
+            'product_id': self.product.id,
+            'product_uom_qty': 1.0,
+        })
+
+        self.assertEqual(order.pricelist_id.name, 'Giá cơ sở')
+        self.assertEqual(order.pricelist_id.currency_id, company.currency_id)
+        self.assertAlmostEqual(line.price_unit, self.product.list_price)
+
     def test_order_line_uses_matching_customer_tier_discount(self):
         for points, customer_type, expected_discount in (
             (500, 'silver', 5.0),

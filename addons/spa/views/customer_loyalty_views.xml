@@ -7,7 +7,6 @@
                 <field name="name"/>
                 <field name="partner_id"/>
                 <field name="appointment_id" optional="hide"/>
-                <field name="transaction_type"/>
                 <field name="points"/>
                 <field name="state"/>
                 <field name="applied_by"/>
@@ -27,7 +26,6 @@
                         <field name="name" readonly="state == 'applied'"/>
                         <field name="partner_id" readonly="state == 'applied'"/>
                         <field name="appointment_id" invisible="not appointment_id"/>
-                        <field name="transaction_type" readonly="state == 'applied'"/>
                     </group>
                     <group>
                         <field name="date" readonly="state == 'applied'"/>
@@ -47,7 +45,7 @@
             <search><field name="name"/><field name="partner_id"/>
                 <filter name="draft" string="Nháp" domain="[('state','=','draft')]"/>
                 <filter name="applied" string="Đã áp dụng" domain="[('state','=','applied')]"/>
-                <group expand="0" string="Nhóm theo"><filter name="group_partner" string="Khách hàng" context="{'group_by':'partner_id'}"/><filter name="group_type" string="Loại giao dịch" context="{'group_by':'transaction_type'}"/></group>
+                <group expand="0" string="Nhóm theo"><filter name="group_partner" string="Khách hàng" context="{'group_by':'partner_id'}"/></group>
             </search>
         </field>
     </record>

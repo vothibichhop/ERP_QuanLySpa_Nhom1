@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_spa_return_request_list" model="ir.ui.view">
+        <field name="name">spa.return.request.list</field>
+        <field name="model">spa.return.request</field>
+        <field name="arch" type="xml">
+            <list string="Yêu cầu trả hàng"
+                  decoration-muted="state in ['refused', 'cancelled']">
+                <field name="name"/>
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="delivery_picking_id" groups="stock.group_stock_user"/>
+                <field name="requested_by"/>
+                <field name="approver_id"/>
+                <field name="return_state"/>
+                <field name="state" widget="badge"/>
+                <field name="credit_note_id" groups="account.group_account_invoice"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_return_request_form" model="ir.ui.view">
+        <field name="name">spa.return.request.form</field>
+        <field name="model">spa.return.request</field>
+        <field name="arch" type="xml">
+            <form string="Yêu cầu trả hàng">
+                <header>
+                    <button name="action_submit"
+                            string="Gửi duyệt"
+                            type="object"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve"
+                            string="Duyệt và tạo phiếu nhập trả"
+                            type="object"
+                            class="btn-success"
+                            groups="spa.group_customer_management_manager,hr.group_hr_manager"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_refuse"
+                            string="Từ chối"
+                            type="object"
+                            class="btn-secondary"
+                            groups="spa.group_customer_management_manager,hr.group_hr_manager"
+                            invisible="state != 'submitted'"/>
+                    <button name="action_cancel"
+                            string="Hủy"
+                            type="object"
+                            class="btn-secondary"
+                            invisible="state not in ['draft', 'submitted']"/>
+                    <button name="action_open_return_picking"
+                            string="Xử lý hàng trả"
+                            type="object"
+                            class="btn-primary"
+                            groups="stock.group_stock_user"
+                            invisible="not return_picking_id or return_received"/>
+                    <button name="action_create_refund"
+                            string="Tạo credit note"
+                            type="object"
+                            class="btn-primary"
+                            groups="account.group_account_invoice"
+                            invisible="state != 'approved' or not return_received or credit_note_id"/>
+                    <field name="state"
+                           widget="statusbar"
+                           readonly="1"
+                           statusbar_visible="draft,submitted,approved,refused,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="order_id" readonly="state != 'draft'"/>
+                            <field name="partner_id" readonly="1"/>
+                            <field name="delivery_picking_id"
+                                   groups="stock.group_stock_user"
+                                   readonly="state != 'draft'"
+                                   domain="[('sale_id', '=', order_id), ('state', '=', 'done'), ('picking_type_code', '=', 'outgoing')]"/>
+                            <field name="requested_by" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="approver_id" readonly="1"/>
+                            <field name="return_picking_id"
+                                   groups="stock.group_stock_user"
+                                   readonly="1"/>
+                            <field name="return_state" readonly="1"/>
+                            <field name="return_received" invisible="1"/>
+                            <field name="invoice_id"
+                                   domain="[('move_type', '=', 'out_invoice'), ('state', '=', 'posted')]"
+                                   readonly="state != 'approved' or not return_received or credit_note_id"/>
+                            <field name="credit_note_id"
+                                   groups="account.group_account_invoice"
+                                   readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="reason"
+                               placeholder="Nhập lý do và căn cứ duyệt trả hàng..."
+                               readonly="state != 'draft'"/>
+                    </group>
+                    <notebook>
+                        <page string="Sản phẩm trả">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <list editable="bottom" create="0" delete="1">
+                                    <field name="product_id"/>
+                                    <field name="quantity"/>
+                                    <field name="uom_id" groups="uom.group_uom"/>
+                                    <field name="move_id" column_invisible="True"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_spa_return_request_search" model="ir.ui.view">
+        <field name="name">spa.return.request.search</field>
+        <field name="model">spa.return.request</field>
+        <field name="arch" type="xml">
+            <search string="Tìm yêu cầu trả hàng">
+                <field name="name"/>
+                <field name="order_id"/>
+                <field name="partner_id"/>
+                <field name="reason"/>
+                <filter name="filter_submitted"
+                        string="Chờ duyệt"
+                        domain="[('state', '=', 'submitted')]"/>
+                <filter name="filter_approved"
+                        string="Đã duyệt"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter name="filter_received"
+                        string="Đã nhận hàng"
+                        domain="[('state', '=', 'approved'), ('return_picking_id.state', '=', 'done')]"/>
+                <filter name="filter_refused"
+                        string="Từ chối"
+                        domain="[('state', '=', 'refused')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_state"
+                            string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_order"
+                            string="Đơn bán hàng"
+                            context="{'group_by': 'order_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_spa_return_request" model="ir.actions.act_window">
+        <field name="name">Trả hàng và hoàn tiền</field>
+        <field name="res_model">spa.return.request</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_spa_return_request_search"/>
+    </record>
+
+    <menuitem id="menu_spa_return_request"
+              name="Trả hàng và hoàn tiền"
+              parent="menu_customer_management_root"
+              action="action_spa_return_request"
+              sequence="16"
+              groups="spa.group_customer_management_manager,stock.group_stock_user,account.group_account_invoice"/>
+</odoo>

@@ -19,3 +19,11 @@ access_spa_appointment_line_user,spa.appointment.line.user,model_spa_appointment
 access_spa_appointment_line_manager,spa.appointment.line.manager,model_spa_appointment_line,group_customer_management_manager,1,1,1,1
 access_spa_appointment_combo_choice_user,spa.appointment.combo.choice.user,model_spa_appointment_combo_choice,group_customer_management_user,1,1,1,1
 access_spa_appointment_combo_choice_manager,spa.appointment.combo.choice.manager,model_spa_appointment_combo_choice,group_customer_management_manager,1,1,1,1
+access_spa_return_request_user,spa.return.request.user,model_spa_return_request,group_customer_management_user,1,1,1,0
+access_spa_return_request_manager,spa.return.request.manager,model_spa_return_request,group_customer_management_manager,1,1,1,1
+access_spa_return_request_stock,spa.return.request.stock,model_spa_return_request,stock.group_stock_user,1,1,1,0
+access_spa_return_request_account,spa.return.request.account,model_spa_return_request,account.group_account_invoice,1,1,0,0
+access_spa_return_request_line_user,spa.return.request.line.user,model_spa_return_request_line,group_customer_management_user,1,1,1,0
+access_spa_return_request_line_manager,spa.return.request.line.manager,model_spa_return_request_line,group_customer_management_manager,1,1,1,1
+access_spa_return_request_line_stock,spa.return.request.line.stock,model_spa_return_request_line,stock.group_stock_user,1,1,1,0
+access_spa_return_request_line_account,spa.return.request.line.account,model_spa_return_request_line,account.group_account_invoice,1,0,0,0

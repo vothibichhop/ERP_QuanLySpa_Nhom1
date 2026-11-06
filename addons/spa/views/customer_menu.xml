@@ -19,6 +19,12 @@
     <menuitem id="menu_customer_treatment" name="Liệu trình khách hàng"
         parent="menu_customer_management_root" action="action_customer_treatment" sequence="30"
         groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_spa_treatment_package" name="Danh mục gói liệu trình"
+        parent="menu_customer_management_root" action="action_spa_treatment_package"
+        sequence="31" groups="spa.group_customer_management_user"/>
+    <menuitem id="menu_spa_customer_package" name="Gói liệu trình khách hàng"
+        parent="menu_customer_management_root" action="action_spa_customer_package"
+        sequence="32" groups="spa.group_customer_management_user"/>
     <record id="menu_customer_skin_profile" model="ir.ui.menu">
         <field name="active" eval="False"/>
     </record>

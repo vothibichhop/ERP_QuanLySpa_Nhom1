@@ -13,3 +13,4 @@ from . import sale_order
 from . import account_move
 from . import invoice_line
 from . import hr_employee
+from . import return_request
