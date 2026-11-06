@@ -1,0 +1,334 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="uom_spa_piece" model="uom.uom">
+            <field name="name">Cái</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit"/>
+            <field name="factor">1</field>
+            <field name="uom_type">smaller</field>
+            <field name="rounding">1</field>
+        </record>
+
+        <record id="uom_spa_millilitre" model="uom.uom">
+            <field name="name">ml</field>
+            <field name="category_id" ref="uom.product_uom_categ_vol"/>
+            <field name="factor">1000</field>
+            <field name="uom_type">smaller</field>
+            <field name="rounding">1</field>
+        </record>
+
+        <record id="product_spa_equipment_massage_bed" model="product.template">
+            <field name="name">Giường massage</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-001</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">8000000</field>
+        </record>
+        <record id="product_spa_equipment_facial_bed" model="product.template">
+            <field name="name">Giường chăm sóc da</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-002</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">10000000</field>
+        </record>
+        <record id="product_spa_equipment_facial_steamer" model="product.template">
+            <field name="name">Máy xông hơi mặt</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-003</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">1500000</field>
+        </record>
+        <record id="product_spa_equipment_skin_analyzer" model="product.template">
+            <field name="name">Đèn soi da</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-004</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">2000000</field>
+        </record>
+        <record id="product_spa_equipment_facial_machine" model="product.template">
+            <field name="name">Máy chăm sóc da đa năng</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-005</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">25000000</field>
+        </record>
+        <record id="product_spa_equipment_iontophoresis" model="product.template">
+            <field name="name">Máy điện di tinh chất</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-006</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">5000000</field>
+        </record>
+        <record id="product_spa_equipment_towel_warmer" model="product.template">
+            <field name="name">Máy hấp khăn</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-007</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">1800000</field>
+        </record>
+        <record id="product_spa_equipment_uv_sterilizer" model="product.template">
+            <field name="name">Tủ tiệt trùng dụng cụ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-008</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">2500000</field>
+        </record>
+        <record id="product_spa_equipment_instrument_cart" model="product.template">
+            <field name="name">Xe đẩy dụng cụ Spa</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-009</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">1200000</field>
+        </record>
+        <record id="product_spa_equipment_cosmetic_fridge" model="product.template">
+            <field name="name">Tủ lạnh bảo quản mỹ phẩm</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">TB-010</field>
+            <field name="spa_inventory_type">equipment</field>
+            <field name="standard_price">4000000</field>
+        </record>
+
+        <record id="product_spa_material_massage_oil" model="product.template">
+            <field name="name">Dầu massage dùng tại Spa</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-001</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">150</field>
+        </record>
+        <record id="product_spa_material_essential_oil" model="product.template">
+            <field name="name">Tinh dầu massage</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-002</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">300</field>
+        </record>
+        <record id="product_spa_material_cleanser" model="product.template">
+            <field name="name">Sữa rửa mặt dùng trong liệu trình</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-003</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">80</field>
+        </record>
+        <record id="product_spa_material_toner" model="product.template">
+            <field name="name">Toner dùng trong liệu trình</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-004</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">120</field>
+        </record>
+        <record id="product_spa_material_serum" model="product.template">
+            <field name="name">Serum dùng trong liệu trình</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-005</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">500</field>
+        </record>
+        <record id="product_spa_material_massage_cream" model="product.template">
+            <field name="name">Kem massage dùng tại Spa</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-006</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">180</field>
+        </record>
+        <record id="product_spa_material_body_scrub" model="product.template">
+            <field name="name">Tẩy tế bào chết dùng trong dịch vụ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="uom_po_id" ref="uom.product_uom_gram"/>
+            <field name="default_code">NVL-007</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">250</field>
+        </record>
+        <record id="product_spa_material_facial_mask" model="product.template">
+            <field name="name">Mặt nạ dùng cho liệu trình</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">NVL-008</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">15000</field>
+        </record>
+        <record id="product_spa_material_cotton_pad" model="product.template">
+            <field name="name">Bông tẩy trang dùng tại Spa</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">NVL-009</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">300</field>
+        </record>
+        <record id="product_spa_material_facial_tissue" model="product.template">
+            <field name="name">Khăn giấy lau mặt</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">NVL-010</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">150</field>
+        </record>
+        <record id="product_spa_material_disposable_gloves" model="product.template">
+            <field name="name">Găng tay dùng một lần</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">NVL-011</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">700</field>
+        </record>
+        <record id="product_spa_material_disposable_mask" model="product.template">
+            <field name="name">Khẩu trang dùng một lần</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">NVL-012</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">300</field>
+        </record>
+        <record id="product_spa_material_hair_cap" model="product.template">
+            <field name="name">Mũ trùm tóc dùng một lần</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">NVL-013</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">250</field>
+        </record>
+        <record id="product_spa_material_machine_gel" model="product.template">
+            <field name="name">Gel dùng cho máy chăm sóc da</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-014</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">80</field>
+        </record>
+        <record id="product_spa_material_sanitizer" model="product.template">
+            <field name="name">Cồn sát khuẩn dụng cụ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-015</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">50</field>
+        </record>
+        <record id="product_spa_material_disposable_bed_sheet" model="product.template">
+            <field name="name">Tấm phủ giường dùng một lần</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_piece"/>
+            <field name="uom_po_id" ref="uom_spa_piece"/>
+            <field name="default_code">NVL-016</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">1500</field>
+        </record>
+    </data>
+</odoo>

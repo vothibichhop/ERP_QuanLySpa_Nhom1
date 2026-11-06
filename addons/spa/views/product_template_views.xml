@@ -13,8 +13,60 @@
                 <field name="spa_combo_category" invisible="type != 'combo'"/>
                 <field name="spa_duration_minutes" invisible="type not in ['service', 'combo']"/>
             </field>
+            <field name="standard_price" position="attributes">
+                <attribute name="string">Giá nhập</attribute>
+            </field>
             <group name="internal_notes" position="attributes">
                 <attribute name="string">Mô tả</attribute>
+            </group>
+            <group name="internal_notes" position="before">
+                <group string="Dịch vụ trong gói"
+                       invisible="not spa_treatment_package_id">
+                    <field name="spa_treatment_package_id" invisible="1"/>
+                    <field name="spa_treatment_package_service_summary"
+                           readonly="1"
+                           nolabel="1"/>
+                </group>
+            </group>
+            <notebook position="inside">
+                <page name="spa_service_materials"
+                      string="Định lượng nguyên vật liệu"
+                      groups="spa.group_customer_management_manager,stock.group_stock_manager"
+                      invisible="type != 'service'">
+                    <field name="spa_service_material_ids">
+                        <list editable="bottom">
+                            <field name="product_id"
+                                   domain="[('is_storable', '=', True), ('product_tmpl_id.spa_inventory_type', '=', 'service_material')]"
+                                   options="{'no_create': True}"/>
+                            <field name="quantity"/>
+                            <field name="uom_id"/>
+                        </list>
+                    </field>
+                </page>
+                <page name="spa_combo_materials"
+                      string="Định lượng combo (mỗi khách)"
+                      groups="spa.group_customer_management_manager,stock.group_stock_manager"
+                      invisible="type != 'combo'">
+                    <field name="spa_combo_material_summary"
+                           readonly="1"
+                           nolabel="1"
+                           placeholder="Chưa có định lượng cho các dịch vụ thành phần."/>
+                </page>
+            </notebook>
+            <group name="internal_notes" position="before">
+                <group string="Kho Spa"
+                       groups="stock.group_stock_user"
+                       invisible="not is_storable">
+                    <field name="is_storable" invisible="1"/>
+                    <field name="spa_inventory_type"/>
+                    <field name="spa_stock_status"
+                           widget="badge"
+                           decoration-danger="spa_stock_status in ('low', 'out_of_stock')"
+                           readonly="1"/>
+                    <field name="spa_expiration_date"
+                           invisible="spa_inventory_type != 'service_material'"/>
+                    <field name="qty_available" readonly="1"/>
+                </group>
             </group>
         </field>
     </record>
@@ -32,8 +84,8 @@
         <field name="name">Sản phẩm Spa</field>
         <field name="res_model">product.template</field>
         <field name="view_mode">kanban,list,form</field>
-        <field name="domain">[('type', '=', 'consu'), ('is_storable', '=', True), ('sale_ok', '=', True)]</field>
-        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': True}</field>
+        <field name="domain">[('type', 'in', ('product', 'consu')), ('is_storable', '=', True), ('sale_ok', '=', True), ('spa_inventory_type', '=', 'retail')]</field>
+        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': True, 'default_purchase_ok': True, 'default_spa_inventory_type': 'retail'}</field>
         <field name="search_view_id" ref="product.product_template_search_view"/>
     </record>
 
@@ -57,6 +109,141 @@
     <menuitem id="menu_spa_product_combos" name="Combo Spa"
         parent="sale.product_menu_catalog" action="action_spa_product_combos"
         sequence="6" groups="sales_team.group_sale_salesman"/>
+
+    <record id="action_spa_treatment_package_products" model="ir.actions.act_window">
+        <field name="name">Gói liệu trình</field>
+        <field name="res_model">spa.treatment.package</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[]</field>
+        <field name="context">{'create': True}</field>
+        <field name="view_id" ref="view_spa_treatment_package_list"/>
+        <field name="search_view_id" ref="view_spa_treatment_package_search"/>
+    </record>
+
+    <menuitem id="menu_spa_treatment_package_products" name="Gói liệu trình"
+        parent="sale.product_menu_catalog"
+        action="action_spa_treatment_package_products"
+        sequence="7" groups="sales_team.group_sale_salesman"/>
+
+    <record id="view_spa_inventory_product_list" model="ir.ui.view">
+        <field name="name">product.template.list.spa.inventory</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <list string="Danh mục kho Spa"
+                  decoration-danger="spa_stock_status == 'out_of_stock' or (spa_inventory_type != 'equipment' and qty_available &lt;= 10)"
+                  default_order="spa_inventory_type, name">
+                <field name="default_code" string="Mã"/>
+                <field name="name" string="Tên sản phẩm/thiết bị"/>
+                <field name="spa_inventory_type" string="Phân loại"/>
+                <field name="uom_id" string="Đơn vị tính"/>
+                <field name="qty_available"
+                       string="Số lượng còn lại"
+                       sum="Tổng tồn"/>
+                <field name="spa_expiration_date"
+                       string="Hạn sử dụng"
+                       optional="show"
+                       column_invisible="context.get('hide_spa_expiration_date')"/>
+                <field name="standard_price"
+                       string="Giá nhập"
+                       groups="stock.group_stock_manager"/>
+                <field name="spa_stock_status"
+                       string="Tình trạng"
+                       widget="badge"
+                       decoration-danger="spa_stock_status in ('low', 'out_of_stock')"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_inventory_product_search" model="ir.ui.view">
+        <field name="name">product.template.search.spa.inventory</field>
+        <field name="model">product.template</field>
+        <field name="arch" type="xml">
+            <search string="Tìm sản phẩm trong kho Spa">
+                <field name="default_code"/>
+                <field name="name"/>
+                <field name="spa_inventory_type"/>
+                <filter name="spa_stock_low"
+                        string="Sắp hết (≤ 10)"
+                        domain="[('spa_inventory_type', '!=', 'equipment'), ('qty_available', '&lt;=', 10)]"/>
+                <filter name="spa_stock_empty"
+                        string="Hết hàng"
+                        domain="[('qty_available', '&lt;=', 0)]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_inventory_type"
+                            string="Phân loại"
+                            context="{'group_by': 'spa_inventory_type'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_spa_inventory_items" model="ir.actions.act_window">
+        <field name="name">Danh mục kho Spa</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_spa_inventory_product_list"/>
+        <field name="search_view_id" ref="view_spa_inventory_product_search"/>
+        <field name="domain">[('is_storable', '=', True)]</field>
+        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': False, 'default_purchase_ok': True, 'search_default_group_inventory_type': 1}</field>
+    </record>
+
+    <menuitem id="menu_spa_inventory_items"
+              name="Danh mục kho Spa"
+              parent="stock.menu_stock_root"
+              action="action_spa_inventory_items"
+              sequence="5"
+              groups="stock.group_stock_user"/>
+
+    <record id="action_spa_inventory_equipment" model="ir.actions.act_window">
+        <field name="name">Thiết bị, máy móc</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_spa_inventory_product_list"/>
+        <field name="search_view_id" ref="view_spa_inventory_product_search"/>
+        <field name="domain">[('is_storable', '=', True), ('spa_inventory_type', '=', 'equipment')]</field>
+        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': False, 'default_purchase_ok': True, 'default_spa_inventory_type': 'equipment'}</field>
+    </record>
+
+    <menuitem id="menu_spa_inventory_equipment"
+              name="Thiết bị, máy móc"
+              parent="menu_spa_inventory_items"
+              action="action_spa_inventory_equipment"
+              sequence="6"
+              groups="stock.group_stock_user"/>
+
+    <record id="action_spa_inventory_retail" model="ir.actions.act_window">
+        <field name="name">Sản phẩm bán</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_spa_inventory_product_list"/>
+        <field name="search_view_id" ref="view_spa_inventory_product_search"/>
+        <field name="domain">[('is_storable', '=', True), ('spa_inventory_type', '=', 'retail')]</field>
+        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': True, 'default_purchase_ok': True, 'default_spa_inventory_type': 'retail'}</field>
+    </record>
+
+    <menuitem id="menu_spa_inventory_retail"
+              name="Sản phẩm bán"
+              parent="menu_spa_inventory_items"
+              action="action_spa_inventory_retail"
+              sequence="7"
+              groups="stock.group_stock_user"/>
+
+    <record id="action_spa_inventory_materials" model="ir.actions.act_window">
+        <field name="name">Nguyên vật liệu dịch vụ</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_spa_inventory_product_list"/>
+        <field name="search_view_id" ref="view_spa_inventory_product_search"/>
+        <field name="domain">[('is_storable', '=', True), ('spa_inventory_type', '=', 'service_material')]</field>
+        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': False, 'default_purchase_ok': True, 'default_spa_inventory_type': 'service_material'}</field>
+    </record>
+
+    <menuitem id="menu_spa_inventory_materials"
+              name="Nguyên vật liệu dịch vụ"
+              parent="menu_spa_inventory_items"
+              action="action_spa_inventory_materials"
+              sequence="8"
+              groups="stock.group_stock_user"/>
 
     <record id="product_template_tree_spa_service" model="ir.ui.view">
         <field name="name">product.template.list.spa.service</field>

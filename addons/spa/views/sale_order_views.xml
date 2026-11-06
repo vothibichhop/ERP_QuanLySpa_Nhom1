@@ -12,7 +12,7 @@
                         icon="fa-undo"
                         groups="stock.group_stock_user"
                         invisible="spa_returnable_picking_count == 0"
-                        help="Mở phiếu giao hàng đã hoàn tất để tạo phiếu trả hàng và nhập lại kho.">
+                        help="Tạo yêu cầu trả hàng. Quản lý Spa phải duyệt trước khi nhập hàng trả.">
                     <field name="spa_returnable_picking_count"
                            widget="statinfo"
                            string="Trả hàng"/>
@@ -46,6 +46,111 @@
                        readonly="1"
                        invisible="not spa_appointment_id"/>
             </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_id']"
+                   position="after">
+                <field name="spa_employee_id"
+                       string="Nhân viên bán sản phẩm"
+                       required="product_id and product_id.type in ('product', 'consu')"
+                       domain="[('active', '=', True)]"
+                       force_save="1"
+                       options="{'no_create': True, 'no_open': True}"
+                       help="Chọn nhân viên trực tiếp trên dòng sản phẩm bán lẻ."
+                       readonly="not product_id or product_id.type not in ('product', 'consu')"/>
+                <field name="spa_commission_rate"
+                       optional="show"
+                       invisible="not product_id or product_id.type not in ('product', 'consu')"
+                       readonly="1"/>
+                <field name="spa_commission_amount"
+                       optional="show"
+                       invisible="not product_id or product_id.type not in ('product', 'consu')"
+                       readonly="1"/>
+                <field name="spa_commission_calculated"
+                       string="Đã tính hoa hồng"
+                       widget="boolean"
+                       optional="show"
+                       invisible="not product_id or product_id.type not in ('product', 'consu')"
+                       readonly="1"/>
+                <field name="spa_commission_status"
+                       string="Trạng thái hoa hồng"
+                       widget="badge"
+                       optional="show"
+                       invisible="not product_id or product_id.type not in ('product', 'consu')"
+                       readonly="1"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']" position="attributes">
+                <attribute name="readonly">state == 'cancel'</attribute>
+            </xpath>
         </field>
     </record>
+
+    <record id="view_spa_employee_sales_order_line_list" model="ir.ui.view">
+        <field name="name">sale.order.line.spa.employee.sales.list</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <list string="Hoa hồng theo đơn hàng" create="0" edit="0" delete="0">
+                <field name="spa_employee_id" string="Nhân viên bán"/>
+                <field name="order_id"/>
+                <field name="order_partner_id" string="Khách hàng"/>
+                <field name="spa_order_date"/>
+                <field name="product_id"/>
+                <field name="product_uom_qty" string="Số lượng"/>
+                <field name="price_subtotal"
+                       string="Giá trị sản phẩm"
+                       sum="Tổng giá trị"/>
+                <field name="spa_commission_rate"
+                       string="Tỷ lệ (%)"/>
+                <field name="spa_commission_amount"
+                       string="Hoa hồng từ đơn hàng"
+                       sum="Tổng hoa hồng"/>
+                <field name="spa_commission_status"
+                       string="Trạng thái áp dụng hoa hồng"
+                       widget="badge"/>
+                <field name="currency_id" column_invisible="True"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_employee_sales_commission_search" model="ir.ui.view">
+        <field name="name">sale.order.line.spa.employee.commission.search</field>
+        <field name="model">sale.order.line</field>
+        <field name="arch" type="xml">
+            <search string="Hoa hồng nhân viên">
+                <field name="spa_employee_id" string="Nhân viên"/>
+                <field name="order_id" string="Đơn hàng"/>
+                <field name="product_id" string="Sản phẩm"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_employee"
+                            string="Nhân viên"
+                            context="{'group_by': 'spa_employee_id'}"/>
+                    <filter name="group_order"
+                            string="Đơn hàng"
+                            context="{'group_by': 'order_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_spa_employee_sales_commission_lines"
+            model="ir.actions.act_window">
+        <field name="name">Hoa hồng nhân viên</field>
+        <field name="res_model">sale.order.line</field>
+        <field name="view_mode">list</field>
+        <field name="view_id" ref="view_spa_employee_sales_order_line_list"/>
+        <field name="search_view_id"
+               ref="view_spa_employee_sales_commission_search"/>
+        <field name="domain">
+            [('spa_employee_id', '!=', False),
+             ('display_type', '=', 'product'),
+             ('product_id.type', 'in', ('product', 'consu')),
+             ('order_id.state', 'in', ('sale', 'done'))]
+        </field>
+        <field name="context">{'group_by': 'spa_employee_id'}</field>
+    </record>
+
+    <menuitem id="menu_spa_employee_sales_commission"
+              name="Hoa hồng nhân viên"
+              parent="hr.menu_hr_root"
+              action="action_spa_employee_sales_commission_lines"
+              sequence="25"
+              groups="spa.group_customer_management_manager"/>
 </odoo>

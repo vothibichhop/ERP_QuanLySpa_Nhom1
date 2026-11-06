@@ -16,6 +16,46 @@
                        optional="show"
                        readonly="1"/>
             </xpath>
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='product_id']"
+                   position="after">
+                <field name="spa_employee_id"
+                       string="Nhân viên bán sản phẩm"
+                       optional="show"
+                       readonly="1"
+                       invisible="product_id.type not in ('product', 'consu')"/>
+            </xpath>
+            <xpath expr="//page[@name='invoice_tab']" position="after">
+                <page name="spa_commission_assignment_tab"
+                      string="Nhân viên hoa hồng"
+                      groups="spa.group_customer_management_manager"
+                      invisible="move_type != 'out_invoice'">
+                    <field name="spa_sales_commission_ids"
+                           readonly="state == 'cancel'">
+                        <list editable="bottom" string="Hoa hồng theo sản phẩm">
+                            <field name="invoice_id" column_invisible="True"/>
+                            <field name="invoice_line_id"
+                                   domain="[('move_id', '=', invoice_id), ('display_type', '=', 'product'), ('product_id.type', 'in', ('product', 'consu'))]"
+                                   options="{'no_create': True}"/>
+                            <field name="employee_id"
+                                   required="1"
+                                   domain="[('active', '=', True)]"
+                                   options="{'no_create': True}"/>
+                            <field name="base_amount"
+                                   sum="Tổng doanh thu"
+                                   readonly="1"/>
+                            <field name="rate" readonly="1"/>
+                            <field name="commission_amount" readonly="1"/>
+                            <field name="state" widget="badge" readonly="1"/>
+                            <field name="currency_id" column_invisible="True"/>
+                        </list>
+                    </field>
+                    <div class="text-muted">
+                        Chọn nhân viên cho từng dòng sản phẩm để tính hoa hồng 3%.
+                        Có thể cập nhật phân công sau khi ghi sổ hóa đơn, trước khi
+                        khoản hoa hồng được tạo.
+                    </div>
+                </page>
+            </xpath>
         </field>
     </record>
 

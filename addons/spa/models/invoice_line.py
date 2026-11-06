@@ -4,6 +4,17 @@ from odoo import api, fields, models
 class AccountMoveLine(models.Model):
     _inherit = 'account.move.line'
 
+    spa_sales_commission_ids = fields.One2many(
+        'spa.sales.commission',
+        'invoice_line_id',
+        string='Hoa hồng',
+    )
+    spa_employee_id = fields.Many2one(
+        'hr.employee.public',
+        string='Nhân viên thực hiện',
+        copy=False,
+        ondelete='restrict',
+    )
     spa_discounted_price = fields.Monetary(
         string='Giá sau giảm',
         currency_field='currency_id',

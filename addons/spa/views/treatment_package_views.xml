@@ -1,0 +1,187 @@
+<odoo>
+    <record id="view_spa_treatment_package_list" model="ir.ui.view">
+        <field name="name">spa.treatment.package.list</field>
+        <field name="model">spa.treatment.package</field>
+        <field name="arch" type="xml">
+            <list create="1">
+                <field name="name"/>
+                <field name="price"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="validity_days" string="Thời hạn (ngày)"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'active'"
+                       decoration-muted="state == 'inactive'"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_spa_treatment_package_form" model="ir.ui.view">
+        <field name="name">spa.treatment.package.form</field>
+        <field name="model">spa.treatment.package</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="price"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="validity_days"/>
+                            <field name="active"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Dịch vụ trong gói">
+                            <field name="line_ids"
+                                   string="Dịch vụ trong gói"
+                                   help="Bấm Thêm dòng để thêm nhiều dịch vụ khác nhau; nhập số buổi cho từng dịch vụ.">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="product_id"
+                                           domain="[('type', 'in', ('service', 'combo')), ('spa_treatment_package_id', '=', False)]"
+                                           options="{'no_create': True}"/>
+                                    <field name="session_count"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Mô tả">
+                            <field name="description"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_spa_treatment_package_search" model="ir.ui.view">
+        <field name="name">spa.treatment.package.search</field>
+        <field name="model">spa.treatment.package</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <filter name="active" string="Đang hoạt động"
+                        domain="[('state', '=', 'active')]"/>
+                <filter name="inactive" string="Ngừng kinh doanh"
+                        domain="[('state', '=', 'inactive')]"/>
+            </search>
+        </field>
+    </record>
+    <record id="action_spa_treatment_package" model="ir.actions.act_window">
+        <field name="name">Danh mục gói liệu trình</field>
+        <field name="res_model">spa.treatment.package</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_spa_treatment_package_search"/>
+    </record>
+
+    <record id="view_spa_customer_package_list" model="ir.ui.view">
+        <field name="name">spa.customer.package.list</field>
+        <field name="model">spa.customer.package</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'completed'"
+                  decoration-danger="state in ('expired', 'cancelled')">
+                <field name="name"/>
+                <field name="partner_id" readonly="id"/>
+                <field name="package_id" readonly="id"/>
+                <field name="purchase_date" readonly="id"/>
+                <field name="expiration_date"/>
+                <field name="remaining_session_count"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_spa_customer_package_form" model="ir.ui.view">
+        <field name="name">spa.customer.package.form</field>
+        <field name="model">spa.customer.package</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_cancel" type="object" string="Hủy gói"
+                            invisible="state in ('cancelled', 'completed')"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="active,completed,expired,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="partner_id"/>
+                            <field name="package_id"/>
+                            <field name="sale_order_id"/>
+                            <field name="user_id"/>
+                            <field name="price"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="purchase_date"/>
+                            <field name="start_date"/>
+                            <field name="validity_days"/>
+                            <field name="expiration_date" readonly="1"/>
+                            <field name="session_count" readonly="1"/>
+                            <field name="used_session_count" readonly="1"/>
+                            <field name="remaining_session_count" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Số buổi và lịch sử sử dụng">
+                            <field name="line_ids">
+                                <list>
+                                    <field name="product_id" readonly="1"/>
+                                    <field name="session_count" readonly="1"/>
+                                    <field name="used_session_count" readonly="1"/>
+                                    <field name="remaining_session_count" readonly="1"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <field name="product_id" readonly="1"/>
+                                        <field name="session_count" readonly="1"/>
+                                        <field name="used_session_count" readonly="1"/>
+                                        <field name="remaining_session_count" readonly="1"/>
+                                    </group>
+                                    <field name="session_ids">
+                                        <list editable="bottom">
+                                            <field name="session_date"/>
+                                            <field name="employee_id"/>
+                                            <field name="appointment_id"/>
+                                            <field name="state"/>
+                                            <field name="note"/>
+                                        </list>
+                                    </field>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Ghi chú">
+                            <field name="note"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+    <record id="view_spa_customer_package_search" model="ir.ui.view">
+        <field name="name">spa.customer.package.search</field>
+        <field name="model">spa.customer.package</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="package_id"/>
+                <field name="user_id"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_package" string="Gói liệu trình"
+                            context="{'group_by': 'package_id'}"/>
+                    <filter name="group_customer" string="Khách hàng"
+                            context="{'group_by': 'partner_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    <record id="action_spa_customer_package" model="ir.actions.act_window">
+        <field name="name">Gói liệu trình khách hàng</field>
+        <field name="res_model">spa.customer.package</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_spa_customer_package_search"/>
+    </record>
+</odoo>
