@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="spa_bed_g1" model="spa.bed">
+        <field name="name">G1</field>
+        <field name="room_id" ref="spa_room_h1"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g2" model="spa.bed">
+        <field name="name">G2</field>
+        <field name="room_id" ref="spa_room_h1"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g3" model="spa.bed">
+        <field name="name">G3</field>
+        <field name="room_id" ref="spa_room_h1"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g4" model="spa.bed">
+        <field name="name">G4</field>
+        <field name="room_id" ref="spa_room_h1"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g5" model="spa.bed">
+        <field name="name">G5</field>
+        <field name="room_id" ref="spa_room_h1"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g6" model="spa.bed">
+        <field name="name">G6</field>
+        <field name="room_id" ref="spa_room_h2"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g7" model="spa.bed">
+        <field name="name">G7</field>
+        <field name="room_id" ref="spa_room_h2"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g8" model="spa.bed">
+        <field name="name">G8</field>
+        <field name="room_id" ref="spa_room_h2"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g9" model="spa.bed">
+        <field name="name">G9</field>
+        <field name="room_id" ref="spa_room_h2"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g10" model="spa.bed">
+        <field name="name">G10</field>
+        <field name="room_id" ref="spa_room_h2"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g11" model="spa.bed">
+        <field name="name">G11</field>
+        <field name="room_id" ref="spa_room_h3"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g12" model="spa.bed">
+        <field name="name">G12</field>
+        <field name="room_id" ref="spa_room_h3"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g13" model="spa.bed">
+        <field name="name">G13</field>
+        <field name="room_id" ref="spa_room_h3"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g14" model="spa.bed">
+        <field name="name">G14</field>
+        <field name="room_id" ref="spa_room_h3"/>
+        <field name="active">True</field>
+    </record>
+    <record id="spa_bed_g15" model="spa.bed">
+        <field name="name">G15</field>
+        <field name="room_id" ref="spa_room_h3"/>
+        <field name="active">True</field>
+    </record>
+</odoo>

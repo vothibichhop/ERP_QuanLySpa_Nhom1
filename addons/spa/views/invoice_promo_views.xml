@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_move_form_spa_discounted_price" model="ir.ui.view">
+        <field name="name">account.move.form.spa.discounted.price</field>
+        <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_move_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_unit']"
+                   position="attributes">
+                <attribute name="string">Giá gốc</attribute>
+            </xpath>
+            <xpath expr="//field[@name='invoice_line_ids']/list/field[@name='price_unit']"
+                   position="after">
+                <field name="spa_discounted_price"
+                       string="Giá sau giảm"
+                       optional="show"
+                       readonly="1"/>
+            </xpath>
+        </field>
+    </record>
+
+    <template id="report_invoice_document_spa_discounted_price"
+              inherit_id="account.report_invoice_document">
+        <xpath expr="//th[@name='th_priceunit']/span" position="replace">
+            <span>Giá gốc</span>
+        </xpath>
+        <xpath expr="//th[@name='th_priceunit']" position="after">
+            <th name="th_spa_discounted_price"
+                t-attf-class="text-end text-nowrap {{ 'd-none d-md-table-cell' if report_type == 'html' else '' }}">
+                <span>Giá sau giảm</span>
+            </th>
+        </xpath>
+        <xpath expr="//td[@name='td_price_unit']" position="after">
+            <td name="td_spa_discounted_price"
+                t-attf-class="text-end {{ 'd-none d-md-table-cell' if report_type == 'html' else '' }}">
+                <span class="text-nowrap" t-field="line.spa_discounted_price"/>
+            </td>
+        </xpath>
+    </template>
+</odoo>

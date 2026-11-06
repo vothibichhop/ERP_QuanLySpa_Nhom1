@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="seq_spa_employee" model="ir.sequence">
+        <field name="name">Mã nhân viên Spa</field>
+        <field name="code">spa.employee</field>
+        <field name="prefix">NV</field>
+        <field name="padding">6</field>
+        <field name="company_id" eval="False"/>
+    </record>
+</odoo>

@@ -1,0 +1,57 @@
+<odoo>
+    <record id="view_customer_loyalty_tree" model="ir.ui.view">
+        <field name="name">customer.loyalty.transaction.tree</field><field name="model">customer.loyalty.transaction</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'applied'">
+                <field name="date"/>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="appointment_id" optional="hide"/>
+                <field name="transaction_type"/>
+                <field name="points"/>
+                <field name="state"/>
+                <field name="applied_by"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_customer_loyalty_form" model="ir.ui.view">
+        <field name="name">customer.loyalty.transaction.form</field><field name="model">customer.loyalty.transaction</field>
+        <field name="arch" type="xml">
+            <form><header>
+                <button name="action_apply_points" type="object" string="Áp dụng giao dịch" class="oe_highlight" invisible="state != 'draft'" groups="spa.group_customer_management_manager"/>
+                <field name="state" widget="statusbar" statusbar_visible="draft,applied"/>
+            </header>
+            <sheet>
+                <group>
+                    <group>
+                        <field name="name" readonly="state == 'applied'"/>
+                        <field name="partner_id" readonly="state == 'applied'"/>
+                        <field name="appointment_id" invisible="not appointment_id"/>
+                        <field name="transaction_type" readonly="state == 'applied'"/>
+                    </group>
+                    <group>
+                        <field name="date" readonly="state == 'applied'"/>
+                        <field name="points" readonly="state == 'applied'"/>
+                        <field name="applied_by"/>
+                        <field name="applied_at"/>
+                    </group>
+                </group>
+                <field name="note"/>
+            </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_customer_loyalty_search" model="ir.ui.view">
+        <field name="name">customer.loyalty.transaction.search</field><field name="model">customer.loyalty.transaction</field>
+        <field name="arch" type="xml">
+            <search><field name="name"/><field name="partner_id"/>
+                <filter name="draft" string="Nháp" domain="[('state','=','draft')]"/>
+                <filter name="applied" string="Đã áp dụng" domain="[('state','=','applied')]"/>
+                <group expand="0" string="Nhóm theo"><filter name="group_partner" string="Khách hàng" context="{'group_by':'partner_id'}"/><filter name="group_type" string="Loại giao dịch" context="{'group_by':'transaction_type'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_customer_loyalty" model="ir.actions.act_window">
+        <field name="name">Điểm tích lũy</field><field name="res_model">customer.loyalty.transaction</field><field name="view_mode">list,form</field><field name="search_view_id" ref="view_customer_loyalty_search"/>
+    </record>
+</odoo>

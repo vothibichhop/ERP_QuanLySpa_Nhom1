@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="product_template_form_spa_service" model="ir.ui.view">
+        <field name="name">product.template.form.spa.service</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_only_form_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="spa_service_code" invisible="type not in ['service', 'combo']"/>
+            </field>
+            <field name="type" position="after">
+                <field name="spa_category" invisible="type != 'service'"/>
+                <field name="spa_combo_category" invisible="type != 'combo'"/>
+                <field name="spa_duration_minutes" invisible="type not in ['service', 'combo']"/>
+            </field>
+            <group name="internal_notes" position="attributes">
+                <attribute name="string">Mô tả</attribute>
+            </group>
+        </field>
+    </record>
+
+    <record id="action_spa_product_services" model="ir.actions.act_window">
+        <field name="name">Dịch vụ Spa</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('type', '=', 'service')]</field>
+        <field name="context">{'default_type': 'service', 'default_sale_ok': True, 'default_purchase_ok': False}</field>
+        <field name="search_view_id" ref="product.product_template_search_view"/>
+    </record>
+
+    <record id="action_spa_products" model="ir.actions.act_window">
+        <field name="name">Sản phẩm Spa</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('type', '=', 'consu'), ('is_storable', '=', True), ('sale_ok', '=', True)]</field>
+        <field name="context">{'default_type': 'consu', 'default_is_storable': True, 'default_sale_ok': True}</field>
+        <field name="search_view_id" ref="product.product_template_search_view"/>
+    </record>
+
+    <menuitem id="menu_spa_products" name="Sản phẩm Spa"
+        parent="sale.product_menu_catalog" action="action_spa_products"
+        sequence="4" groups="sales_team.group_sale_salesman"/>
+
+    <menuitem id="menu_spa_product_services" name="Dịch vụ Spa"
+        parent="sale.product_menu_catalog" action="action_spa_product_services"
+        sequence="5" groups="sales_team.group_sale_salesman"/>
+
+    <record id="action_spa_product_combos" model="ir.actions.act_window">
+        <field name="name">Combo Spa</field>
+        <field name="res_model">product.template</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="domain">[('type', '=', 'combo')]</field>
+        <field name="context">{'default_type': 'combo', 'default_sale_ok': True, 'default_purchase_ok': False}</field>
+        <field name="search_view_id" ref="product.product_template_search_view"/>
+    </record>
+
+    <menuitem id="menu_spa_product_combos" name="Combo Spa"
+        parent="sale.product_menu_catalog" action="action_spa_product_combos"
+        sequence="6" groups="sales_team.group_sale_salesman"/>
+
+    <record id="product_template_tree_spa_service" model="ir.ui.view">
+        <field name="name">product.template.list.spa.service</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_tree_view"/>
+        <field name="arch" type="xml">
+            <field name="name" position="after">
+                <field name="spa_service_code" optional="show"/>
+                <field name="spa_category" optional="show"/>
+                <field name="spa_combo_category" optional="show"/>
+                <field name="spa_duration_minutes" optional="show"/>
+            </field>
+        </field>
+    </record>
+
+    <record id="product_template_search_spa_service" model="ir.ui.view">
+        <field name="name">product.template.search.spa.service</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_search_view"/>
+        <field name="arch" type="xml">
+            <field name="categ_id" position="after">
+                <field name="spa_category"/>
+                <field name="spa_combo_category"/>
+            </field>
+            <filter name="categ_id" position="after">
+                <filter name="spa_category" string="Phân loại dịch vụ Spa"
+                    context="{'group_by': 'spa_category'}"/>
+                <filter name="spa_combo_category" string="Danh mục combo Spa"
+                    context="{'group_by': 'spa_combo_category'}"/>
+            </filter>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_sale_order_form_spa_payment" model="ir.ui.view">
+        <field name="name">sale.order.form.spa.payment</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_spa_return_delivered_products"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-undo"
+                        groups="stock.group_stock_user"
+                        invisible="spa_returnable_picking_count == 0"
+                        help="Mở phiếu giao hàng đã hoàn tất để tạo phiếu trả hàng và nhập lại kho.">
+                    <field name="spa_returnable_picking_count"
+                           widget="statinfo"
+                           string="Trả hàng"/>
+                </button>
+                <button name="action_spa_create_refund"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-reply"
+                        groups="account.group_account_invoice"
+                        invisible="spa_refundable_invoice_count == 0"
+                        help="Tạo hóa đơn điều chỉnh (credit note). Việc hoàn tiền thực tế được ghi nhận riêng qua thanh toán.">
+                    <field name="spa_refundable_invoice_count"
+                           widget="statinfo"
+                           string="Hoàn tiền"/>
+                </button>
+            </xpath>
+            <xpath expr="//header" position="inside">
+                <button name="action_spa_confirm_payment"
+                        type="object"
+                        string="Xác nhận thanh toán"
+                        class="btn-primary"
+                        groups="spa.group_spa_billing_user"
+                        invisible="not spa_appointment_id or state not in ('draft', 'sent', 'sale')"/>
+            </xpath>
+            <xpath expr="//group[@name='partner_details']/field[@name='partner_id']"
+                   position="after">
+                <field name="spa_customer_type" readonly="1"/>
+                <field name="spa_customer_loyalty_point" readonly="1"/>
+                <field name="spa_tier_discount" readonly="1"/>
+                <field name="spa_appointment_id"
+                       readonly="1"
+                       invisible="not spa_appointment_id"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

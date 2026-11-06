@@ -1,0 +1,58 @@
+.o_spa_resource_grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    gap: 0.75rem;
+    width: 100%;
+
+    .o_spa_resource_room {
+        min-width: 0;
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.35rem;
+    }
+
+    .o_spa_resource_room_title {
+        margin: 0 0 0.6rem;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .o_spa_resource_beds {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+    }
+
+    .o_spa_resource_bed {
+        min-width: 3.5rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid #198754;
+        border-radius: 0.35rem;
+        background: #f1faf4;
+        color: #146c43;
+        cursor: pointer;
+
+        &:hover:not(:disabled) {
+            background: #d1e7dd;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #0d6efd;
+            outline-offset: 2px;
+        }
+
+        &:disabled {
+            border-color: #ced4da;
+            background: #e9ecef;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 1;
+        }
+    }
+
+    .o_spa_resource_bed_selected {
+        border: 2px solid #0d6efd;
+        background: #cfe2ff;
+        color: #084298;
+    }
+}

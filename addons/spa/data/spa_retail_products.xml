@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="product_category_spa_skincare" model="product.category">
+            <field name="name">Sản phẩm chăm sóc da</field>
+            <field name="parent_id" ref="product.product_category_all"/>
+        </record>
+        <record id="product_category_spa_haircare" model="product.category">
+            <field name="name">Sản phẩm chăm sóc tóc</field>
+            <field name="parent_id" ref="product.product_category_all"/>
+        </record>
+        <record id="product_category_spa_bodycare" model="product.category">
+            <field name="name">Sản phẩm chăm sóc cơ thể</field>
+            <field name="parent_id" ref="product.product_category_all"/>
+        </record>
+
+        <record id="product_spa_gentle_cleanser" model="product.template">
+            <field name="name">Sữa rửa mặt dịu nhẹ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_skincare"/>
+            <field name="default_code">SPA-SK-001</field>
+            <field name="list_price">180000</field>
+        </record>
+        <record id="product_spa_hydrating_toner" model="product.template">
+            <field name="name">Nước cân bằng cấp ẩm</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_skincare"/>
+            <field name="default_code">SPA-SK-002</field>
+            <field name="list_price">220000</field>
+        </record>
+        <record id="product_spa_hyaluronic_serum" model="product.template">
+            <field name="name">Serum cấp ẩm Hyaluronic</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_skincare"/>
+            <field name="default_code">SPA-SK-003</field>
+            <field name="list_price">390000</field>
+        </record>
+        <record id="product_spa_vitamin_c_serum" model="product.template">
+            <field name="name">Serum Vitamin C</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_skincare"/>
+            <field name="default_code">SPA-SK-004</field>
+            <field name="list_price">450000</field>
+        </record>
+        <record id="product_spa_moisturizer" model="product.template">
+            <field name="name">Kem dưỡng ẩm</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_skincare"/>
+            <field name="default_code">SPA-SK-005</field>
+            <field name="list_price">350000</field>
+        </record>
+        <record id="product_spa_sunscreen" model="product.template">
+            <field name="name">Kem chống nắng SPF 50+</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_skincare"/>
+            <field name="default_code">SPA-SK-006</field>
+            <field name="list_price">320000</field>
+        </record>
+        <record id="product_spa_hydrating_mask" model="product.template">
+            <field name="name">Mặt nạ dưỡng ẩm</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_skincare"/>
+            <field name="default_code">SPA-SK-007</field>
+            <field name="list_price">50000</field>
+        </record>
+
+        <record id="product_spa_herbal_shampoo" model="product.template">
+            <field name="name">Dầu gội thảo dược</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_haircare"/>
+            <field name="default_code">SPA-HR-001</field>
+            <field name="list_price">220000</field>
+        </record>
+        <record id="product_spa_hair_conditioner" model="product.template">
+            <field name="name">Dầu xả phục hồi tóc</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_haircare"/>
+            <field name="default_code">SPA-HR-002</field>
+            <field name="list_price">240000</field>
+        </record>
+
+        <record id="product_spa_body_scrub" model="product.template">
+            <field name="name">Tẩy tế bào chết toàn thân</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_bodycare"/>
+            <field name="default_code">SPA-BC-001</field>
+            <field name="list_price">280000</field>
+        </record>
+        <record id="product_spa_body_lotion" model="product.template">
+            <field name="name">Sữa dưỡng thể</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_bodycare"/>
+            <field name="default_code">SPA-BC-002</field>
+            <field name="list_price">290000</field>
+        </record>
+        <record id="product_spa_massage_oil" model="product.template">
+            <field name="name">Dầu massage tinh dầu</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="categ_id" ref="product_category_spa_bodycare"/>
+            <field name="default_code">SPA-BC-003</field>
+            <field name="list_price">250000</field>
+        </record>
+    </data>
+</odoo>

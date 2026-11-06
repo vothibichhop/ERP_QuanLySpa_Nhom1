@@ -1,0 +1,51 @@
+<odoo>
+    <record id="view_partner_form_customer_management" model="ir.ui.view">
+        <field name="name">res.partner.form.customer.management</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet/notebook" position="inside">
+                <page string="Thông tin khách hàng" name="customer_care" groups="spa.group_customer_management_user">
+                    <group>
+                        <group>
+                            <field name="customer_code"/>
+                            <field name="customer_type"/>
+                            <field name="loyalty_point" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="care_note" placeholder="Lưu ý khi chăm sóc khách hàng..."/>
+                            <field name="customer_note" placeholder="Ghi chú khách hàng..."/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Lịch sử sử dụng dịch vụ">
+                            <field name="spa_appointment_ids"
+                                   domain="[('status', '=', 'done')]"
+                                   readonly="1">
+                                <list create="0" edit="0" delete="0">
+                                    <field name="appointment_date"/>
+                                    <field name="service_summary"/>
+                                    <field name="employee_id"/>
+                                    <field name="room_id"/>
+                                    <field name="invoice_payment_state" widget="badge"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Lịch sử điểm">
+                            <field name="loyalty_transaction_ids" context="{'default_partner_id': id}">
+                                <list>
+                                    <field name="date"/>
+                                    <field name="name"/>
+                                    <field name="transaction_type"/>
+                                    <field name="points"/>
+                                    <field name="state"/>
+                                    <field name="applied_by"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

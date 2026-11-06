@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_spa_customer_search_wizard_form" model="ir.ui.view">
+        <field name="name">spa.customer.search.wizard.form</field>
+        <field name="model">spa.customer.search.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Tra cứu khách hàng">
+                <group>
+                    <field name="search_term" placeholder="Nhập tên, số điện thoại, email hoặc mã khách hàng"/>
+                </group>
+                <footer>
+                    <button name="action_search" string="Tra cứu" type="object" class="btn-primary"/>
+                    <button string="Hủy" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_spa_customer_search_wizard" model="ir.actions.act_window">
+        <field name="name">Tra cứu khách hàng</field>
+        <field name="res_model">spa.customer.search.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

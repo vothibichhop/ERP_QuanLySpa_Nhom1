@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_spa_service_tree" model="ir.ui.view">
+        <field name="name">spa.service.list</field>
+        <field name="model">spa.service</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="category"/>
+                <field name="duration_minutes"/>
+                <field name="price"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_service_form" model="ir.ui.view">
+        <field name="name">spa.service.form</field>
+        <field name="model">spa.service</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="category"/>
+                        <field name="duration_minutes"/>
+                        <field name="price"/>
+                    </group>
+                    <group>
+                        <field name="description"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_spa_service" model="ir.actions.act_window">
+        <field name="name">Dịch vụ Spa</field>
+        <field name="res_model">spa.service</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,54 @@
+<odoo>
+    <record id="view_customer_care_need_tree" model="ir.ui.view">
+        <field name="name">customer.care.need.tree</field>
+        <field name="model">customer.care.need</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'done'" decoration-muted="state == 'cancel'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="need_type"/>
+                <field name="next_date"/>
+                <field name="user_id"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_customer_care_need_form" model="ir.ui.view">
+        <field name="name">customer.care.need.form</field>
+        <field name="model">customer.care.need</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_start" type="object" string="Bắt đầu xử lý" invisible="state != 'new'"/>
+                    <button name="action_done" type="object" string="Hoàn thành" invisible="state not in ['new', 'processing']"/>
+                    <button name="action_cancel" type="object" string="Hủy" invisible="state not in ['new', 'processing']"/>
+                    <field name="state" widget="statusbar" statusbar_visible="new,processing,done,cancel"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group><field name="name"/><field name="partner_id"/><field name="need_type"/></group>
+                        <group><field name="user_id"/><field name="next_date"/></group>
+                    </group>
+                    <group><field name="description"/></group>
+                    <chatter/>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_customer_care_need_search" model="ir.ui.view">
+        <field name="name">customer.care.need.search</field>
+        <field name="model">customer.care.need</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/><field name="partner_id"/><field name="user_id"/>
+                <filter name="new" string="Mới" domain="[('state','=','new')]"/>
+                <filter name="processing" string="Đang xử lý" domain="[('state','=','processing')]"/>
+                <filter name="overdue" string="Quá hạn" domain="[('next_date','&lt;',context_today().strftime('%Y-%m-%d')),('state','not in',('done','cancel'))]"/>
+                <group expand="0" string="Nhóm theo"><filter name="group_state" string="Trạng thái" context="{'group_by':'state'}"/><filter name="group_user" string="Nhân viên" context="{'group_by':'user_id'}"/></group>
+            </search>
+        </field>
+    </record>
+    <record id="action_customer_care_need" model="ir.actions.act_window">
+        <field name="name">Nhu cầu chăm sóc</field><field name="res_model">customer.care.need</field>        <field name="view_mode">list,form</field><field name="search_view_id" ref="view_customer_care_need_search"/>
+    </record>
+</odoo>
