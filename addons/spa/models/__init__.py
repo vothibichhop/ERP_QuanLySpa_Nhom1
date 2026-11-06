@@ -13,3 +13,8 @@ from . import sale_order
 from . import account_move
 from . import invoice_line
 from . import hr_employee
+from . import treatment_package
+from . import inventory
+from . import sales_commission
+from . import leave
+from . import work_shift
