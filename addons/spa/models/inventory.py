@@ -251,9 +251,17 @@ class StockPicking(models.Model):
     spa_receipt_total_amount = fields.Monetary(
         string='Tổng tiền',
         currency_field='company_currency_id',
-        default=0,
+        compute='_compute_spa_receipt_totals',
         copy=False,
-        help='Tổng tiền theo hóa đơn nhập kho.',
+        help=(
+            'Tổng đơn giá nhập nhân với số lượng thực nhập trên các dòng, '
+            'chưa bao gồm thuế.'
+        ),
+    )
+    spa_receipt_total_quantity = fields.Float(
+        string='Tổng số lượng nhập',
+        compute='_compute_spa_receipt_totals',
+        digits='Product Unit of Measure',
     )
     spa_receipt_status = fields.Selection(
         [
@@ -285,6 +293,38 @@ class StockPicking(models.Model):
             ('company_id', 'in', [self.env.company.id, False]),
             ('active', '=', True),
         ], limit=1).id
+
+    @api.depends(
+        'picking_type_code',
+        'move_ids.state',
+        'move_ids.quantity',
+        'move_ids.product_uom_qty',
+        'move_ids.spa_receipt_unit_price',
+        'move_ids.spa_receipt_subtotal',
+        'move_ids_without_package.state',
+        'move_ids_without_package.quantity',
+        'move_ids_without_package.product_uom_qty',
+        'move_ids_without_package.spa_receipt_unit_price',
+        'move_ids_without_package.spa_receipt_subtotal',
+    )
+    def _compute_spa_receipt_totals(self):
+        for picking in self:
+            receipt_moves = (
+                picking.move_ids.filtered(
+                    lambda move: move.state != 'cancel'
+                )
+                if picking.picking_type_code == 'incoming'
+                else self.env['stock.move']
+            )
+            picking.spa_receipt_total_amount = (
+                picking.company_id.currency_id.round(
+                    sum(receipt_moves.mapped('spa_receipt_subtotal'))
+                )
+            )
+            picking.spa_receipt_total_quantity = sum(
+                move._get_spa_receipt_quantity()
+                for move in receipt_moves
+            )
 
     @api.depends('state')
     def _compute_spa_receipt_status(self):
@@ -348,11 +388,71 @@ class StockPicking(models.Model):
 class StockMove(models.Model):
     _inherit = 'stock.move'
 
+    spa_receipt_currency_id = fields.Many2one(
+        related='company_id.currency_id',
+        readonly=True,
+    )
+    spa_receipt_unit_price = fields.Monetary(
+        string='Giá nhập',
+        currency_field='spa_receipt_currency_id',
+        copy=False,
+    )
+    spa_receipt_subtotal = fields.Monetary(
+        string='Thành tiền',
+        currency_field='spa_receipt_currency_id',
+        compute='_compute_spa_receipt_subtotal',
+    )
     spa_lot_name = fields.Char(
         string='Mã lô',
         copy=False,
         help='Mã lô được dùng khi sản phẩm có bật theo dõi lô.',
     )
+
+    @api.depends(
+        'quantity',
+        'product_uom_qty',
+        'state',
+        'spa_receipt_unit_price',
+    )
+    def _compute_spa_receipt_subtotal(self):
+        for move in self:
+            move.spa_receipt_subtotal = (
+                move._get_spa_receipt_quantity()
+                * move.spa_receipt_unit_price
+            )
+
+    def _get_spa_receipt_quantity(self):
+        self.ensure_one()
+        if self.state == 'done':
+            return self.quantity
+        return self.quantity or self.product_uom_qty
+
+    @api.onchange('product_id')
+    def _onchange_product_id_spa_receipt_unit_price(self):
+        for move in self:
+            if (
+                move.picking_id.picking_type_code == 'incoming'
+                and move.product_id
+            ):
+                move.spa_receipt_unit_price = move.product_id.standard_price
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if (
+                'spa_receipt_unit_price' not in vals
+                and vals.get('product_id')
+                and vals.get('picking_id')
+            ):
+                picking = self.env['stock.picking'].browse(
+                    vals['picking_id']
+                )
+                if picking.picking_type_code == 'incoming':
+                    product = self.env['product.product'].browse(
+                        vals['product_id']
+                    )
+                    vals['spa_receipt_unit_price'] = product.standard_price
+        return super().create(vals_list)
 
 
 class SpaAppointment(models.Model):
@@ -393,10 +493,11 @@ class SpaAppointment(models.Model):
     def _get_spa_service_material_quantities(self):
         self.ensure_one()
         quantity_by_product = defaultdict(float)
+        guest_multiplier = 1 if self.is_group_booking else self.guest_count
         for service in self._get_spa_consumed_services():
             for material in service.spa_service_material_ids:
                 quantity_by_product[material.product_id.id] += (
-                    material.quantity * self.guest_count
+                    material.quantity * guest_multiplier
                 )
         return quantity_by_product
 

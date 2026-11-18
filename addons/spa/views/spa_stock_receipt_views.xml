@@ -11,6 +11,7 @@
                 <field name="partner_id" string="Nhà cung cấp"/>
                 <field name="spa_receipt_invoice_code"/>
                 <field name="spa_receipt_employee_id"/>
+                <field name="spa_receipt_total_quantity" sum="Tổng số lượng"/>
                 <field name="spa_receipt_total_amount" sum="Tổng tiền"/>
                 <field name="spa_receipt_status"
                        widget="badge"
@@ -47,25 +48,31 @@
                 <field name="spa_receipt_invoice_code"
                        readonly="state in ['done', 'cancel']"/>
                 <field name="spa_receipt_total_amount"
-                       readonly="state in ['done', 'cancel']"/>
-            </xpath>
-            <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom_qty']"
-                   position="after">
-                <field name="spa_lot_name"
-                       string="Mã lô"
-                       optional="show"
-                       invisible="parent.picking_type_code != 'incoming'"
-                       readonly="parent.state in ['done', 'cancel']"/>
+                       readonly="1"/>
+                <field name="spa_receipt_total_quantity"
+                       readonly="1"/>
             </xpath>
             <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom_qty']"
                    position="attributes">
                 <attribute name="string">Số lượng dự kiến</attribute>
+                <attribute name="column_invisible">True</attribute>
             </xpath>
             <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='quantity']"
                    position="attributes">
                 <attribute name="string">Số lượng nhập</attribute>
                 <attribute name="column_invisible">parent.picking_type_code != 'incoming'</attribute>
                 <attribute name="readonly">not is_quantity_done_editable or parent.state in ['done', 'cancel']</attribute>
+            </xpath>
+            <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='quantity']"
+                   position="after">
+                <field name="spa_receipt_currency_id" column_invisible="True"/>
+                <field name="spa_receipt_unit_price"
+                       string="Giá nhập"
+                       column_invisible="parent.picking_type_code != 'incoming'"
+                       readonly="parent.state in ['done', 'cancel']"/>
+                <field name="spa_receipt_subtotal"
+                       string="Thành tiền"
+                       column_invisible="parent.picking_type_code != 'incoming'"/>
             </xpath>
             <xpath expr="//field[@name='move_ids_without_package']/list/field[@name='product_uom'][@groups='uom.group_uom']"
                    position="attributes">
@@ -130,7 +137,4 @@
         <field name="act_window_id" ref="stock.action_picking_tree_incoming"/>
     </record>
 
-    <record id="menu_spa_stock_receipts" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
 </odoo>

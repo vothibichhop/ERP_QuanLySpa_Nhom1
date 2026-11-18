@@ -1,6 +1,6 @@
 from odoo import fields
 from odoo.exceptions import UserError
-from odoo.tests import TransactionCase, tagged
+from odoo.tests import Form, TransactionCase, tagged
 
 
 @tagged('post_install', '-at_install')
@@ -23,6 +23,7 @@ class TestSpaStockReceipts(TransactionCase):
             'is_storable': True,
             'tracking': 'lot',
             'spa_inventory_type': 'retail',
+            'standard_price': 50000,
         }).product_variant_id
 
     def _create_receipt(
@@ -31,14 +32,13 @@ class TestSpaStockReceipts(TransactionCase):
         lot_name='LOT-SPA-001',
         demand_quantity=5,
     ):
-        today = fields.Date.context_today(self)
+        today = fields.Date.context_today(self.env.user)
         return self.env['stock.picking'].create({
             'picking_type_id': self.warehouse.in_type_id.id,
             'partner_id': self.vendor.id,
             'spa_receipt_date': today,
             'spa_receipt_employee_id': self.employee.id,
             'spa_receipt_invoice_code': 'INV-SPA-001',
-            'spa_receipt_total_amount': 250000,
             'note': 'Nhập hàng kiểm thử',
             'move_ids': [(0, 0, {
                 'name': (product or self.product).display_name,
@@ -58,6 +58,7 @@ class TestSpaStockReceipts(TransactionCase):
         self.assertEqual(receipt.spa_receipt_status, 'confirmed')
         self.assertEqual(receipt.spa_receipt_invoice_code, 'INV-SPA-001')
         self.assertEqual(receipt.spa_receipt_total_amount, 250000)
+        self.assertEqual(receipt.spa_receipt_total_quantity, 5)
         self.assertEqual(
             fields.Date.to_date(receipt.scheduled_date),
             receipt.spa_receipt_date,
@@ -72,13 +73,54 @@ class TestSpaStockReceipts(TransactionCase):
         receipt = self._create_receipt(demand_quantity=8)
         move = receipt.move_ids
 
+        receipt.picking_type_id.create_backorder = 'never'
         move.quantity = 3
+        move.picked = True
         receipt.button_validate()
 
         self.assertEqual(receipt.state, 'done')
         self.assertEqual(move.quantity, 3)
         self.assertEqual(self.product.qty_available, 3)
+        self.assertEqual(receipt.spa_receipt_total_quantity, 3)
+        self.assertEqual(receipt.spa_receipt_total_amount, 150000)
         self.assertEqual(move.move_line_ids.lot_id.name, 'LOT-SPA-001')
+
+    def test_receipt_totals_update_when_received_quantity_changes(self):
+        receipt = self._create_receipt(demand_quantity=8)
+        move = receipt.move_ids
+
+        move.quantity = 3
+
+        self.assertEqual(receipt.spa_receipt_total_quantity, 3)
+        self.assertEqual(receipt.spa_receipt_total_amount, 150000)
+
+        move.spa_receipt_unit_price = 60000
+
+        self.assertEqual(receipt.spa_receipt_total_amount, 180000)
+
+    def test_receipt_form_totals_update_when_editing_line(self):
+        receipt = self._create_receipt(demand_quantity=5)
+        form = Form(receipt, view='spa.view_spa_stock_receipt_form')
+
+        with form.move_ids_without_package.edit(0) as move:
+            move.quantity = 20
+            move.spa_receipt_unit_price = 100000
+
+        self.assertEqual(form.spa_receipt_total_quantity, 20)
+        self.assertEqual(form.spa_receipt_total_amount, 2000000)
+
+    def test_receipt_totals_use_ordered_quantity_before_validation(self):
+        receipt = self._create_receipt(demand_quantity=4)
+        move = receipt.move_ids
+
+        self.assertEqual(move.quantity, 0)
+        self.assertEqual(receipt.spa_receipt_total_quantity, 4)
+        self.assertEqual(receipt.spa_receipt_total_amount, 200000)
+
+        move.product_uom_qty = 6
+
+        self.assertEqual(receipt.spa_receipt_total_quantity, 6)
+        self.assertEqual(receipt.spa_receipt_total_amount, 300000)
 
     def test_cancelled_receipt_has_cancelled_status(self):
         receipt = self._create_receipt()

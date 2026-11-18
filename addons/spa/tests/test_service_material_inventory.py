@@ -28,6 +28,10 @@ class TestSpaServiceMaterialInventory(TransactionCase):
             'name': 'Giường kiểm thử định lượng kho',
             'room_id': cls.room.id,
         })
+        cls.second_bed = cls.env['spa.bed'].create({
+            'name': 'Giường thứ hai kiểm thử định lượng kho',
+            'room_id': cls.room.id,
+        })
         cls.customer = cls.env['res.partner'].create({
             'name': 'Khách kiểm thử định lượng kho',
         })
@@ -55,7 +59,7 @@ class TestSpaServiceMaterialInventory(TransactionCase):
             'appointment_date': self.work_date,
             'start_time': 9,
             'end_time': 10,
-            'employee_id': self.employee.id,
+            'employee_id': False,
             'room_id': self.room.id,
             'bed_id': self.bed.id,
             'service_product_id': self.service.id,
@@ -100,6 +104,33 @@ class TestSpaServiceMaterialInventory(TransactionCase):
         self.assertEqual(picking.state, 'done')
         self.assertEqual(picking.move_ids.product_uom_qty, 4)
         self.assertEqual(picking.move_ids.quantity, 4)
+
+    def test_group_booking_counts_materials_once_per_guest_service_line(self):
+        appointment = self._create_appointment(
+            guest_count=2,
+            employee_id=False,
+            room_id=False,
+            bed_id=False,
+            service_product_id=False,
+            appointment_line_ids=[
+                (0, 0, {
+                    'product_id': self.service.id,
+                    'duration_minutes': 60,
+                    'bed_id': self.bed.id,
+                }),
+                (0, 0, {
+                    'product_id': self.service.id,
+                    'duration_minutes': 60,
+                    'bed_id': self.second_bed.id,
+                }),
+            ],
+        )
+
+        self.assertTrue(appointment.is_group_booking)
+        self.assertEqual(
+            appointment._get_spa_service_material_quantities(),
+            {self.material.id: 4},
+        )
 
     def test_completed_service_consumes_multiple_materials_from_stock(self):
         second_material = self.env['product.template'].create({
