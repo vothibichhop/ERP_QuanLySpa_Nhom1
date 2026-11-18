@@ -10,15 +10,13 @@ class SpaWorkShift(models.Model):
     _name = 'spa.work.shift'
     _description = 'Ca làm việc'
     _order = 'start_datetime'
-
     name = fields.Char(string='Tên ca', required=True)
     work_date = fields.Date(
         string='Ngày làm việc',
-        compute='_compute_work_date',
-        inverse='_inverse_work_date',
-        store=True,
         required=True,
         index=True,
+        default=fields.Date.context_today,
+        help='Xếp ca theo từng ngày, nên lập lịch trước ít nhất một tuần.',
     )
     shift_type = fields.Selection(
         [('full_day', 'Cả ngày')],
@@ -73,15 +71,8 @@ class SpaWorkShift(models.Model):
         )
         return local_datetime.astimezone(pytz.UTC).replace(tzinfo=None)
 
-    @api.depends('start_datetime')
-    def _compute_work_date(self):
-        for shift in self:
-            shift.work_date = (
-                fields.Datetime.to_datetime(shift.start_datetime).date()
-                if shift.start_datetime else False
-            )
-
-    def _inverse_work_date(self):
+    @api.onchange('work_date')
+    def _onchange_work_date(self):
         for shift in self:
             if shift.work_date:
                 shift.start_datetime = self._shift_datetime(
@@ -94,15 +85,43 @@ class SpaWorkShift(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
-            if vals.get('work_date'):
-                work_date = fields.Date.to_date(vals['work_date'])
-                vals.setdefault(
-                    'start_datetime', self._shift_datetime(work_date, time(7))
-                )
-                vals.setdefault(
-                    'end_datetime', self._shift_datetime(work_date, time(19))
-                )
+            work_date = fields.Date.to_date(
+                vals.get('work_date') or fields.Date.context_today(self)
+            )
+            vals['work_date'] = work_date
+            vals['start_datetime'] = self._shift_datetime(
+                work_date, time(7)
+            )
+            vals['end_datetime'] = self._shift_datetime(
+                work_date, time(19)
+            )
         return super().create(vals_list)
+
+    def write(self, vals):
+        if 'work_date' in vals and vals['work_date']:
+            vals = dict(vals)
+            work_date = fields.Date.to_date(vals['work_date'])
+            vals['work_date'] = work_date
+        elif 'start_datetime' in vals and vals['start_datetime']:
+            vals = dict(vals)
+            start_datetime = fields.Datetime.to_datetime(
+                vals['start_datetime']
+            )
+            work_date = fields.Datetime.context_timestamp(
+                self[:1], start_datetime
+            ).date()
+            vals['work_date'] = work_date
+        else:
+            return super().write(vals)
+
+        if work_date:
+            vals['start_datetime'] = self._shift_datetime(
+                work_date, time(7)
+            )
+            vals['end_datetime'] = self._shift_datetime(
+                work_date, time(19)
+            )
+        return super().write(vals)
 
     @api.constrains('start_datetime', 'end_datetime', 'shift_type')
     def _check_datetime_order(self):
@@ -195,3 +214,18 @@ class SpaWorkShift(models.Model):
             'employee_ids': [(6, 0, guards.ids)],
             'auto_generated': True,
         })
+
+    def action_open_weekly_planner(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Xếp ca theo tuần',
+            'res_model': 'spa.work.shift.week.wizard',
+            'view_mode': 'form',
+            'views': [[
+                self.env.ref(
+                    'spa.view_spa_work_shift_week_wizard_form'
+                ).id,
+                'form',
+            ]],
+            'target': 'new',
+        }
