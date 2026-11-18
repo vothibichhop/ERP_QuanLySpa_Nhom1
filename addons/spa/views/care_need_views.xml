@@ -4,7 +4,6 @@
         <field name="model">customer.care.need</field>
         <field name="arch" type="xml">
             <list decoration-success="state == 'done'" decoration-muted="state == 'cancel'">
-                <field name="name"/>
                 <field name="partner_id"/>
                 <field name="need_type"/>
                 <field name="next_date"/>
@@ -26,7 +25,7 @@
                 </header>
                 <sheet>
                     <group>
-                        <group><field name="name"/><field name="partner_id"/><field name="need_type"/></group>
+                        <group><field name="partner_id"/><field name="need_type"/></group>
                         <group><field name="employee_id"/><field name="next_date"/></group>
                     </group>
                     <group><field name="description"/></group>
@@ -40,7 +39,7 @@
         <field name="model">customer.care.need</field>
         <field name="arch" type="xml">
             <search>
-                <field name="name"/><field name="partner_id"/><field name="employee_id"/>
+                <field name="partner_id"/><field name="employee_id"/>
                 <filter name="new" string="Mới" domain="[('state','=','new')]"/>
                 <filter name="processing" string="Đang xử lý" domain="[('state','=','processing')]"/>
                 <filter name="overdue" string="Quá hạn" domain="[('next_date','&lt;',context_today().strftime('%Y-%m-%d')),('state','not in',('done','cancel'))]"/>

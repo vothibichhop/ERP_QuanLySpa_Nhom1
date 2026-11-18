@@ -1,3 +1,4 @@
+from odoo import fields
 from odoo.tests import TransactionCase, tagged
 
 
@@ -158,6 +159,46 @@ class TestSpaLoyaltyTierDiscount(TransactionCase):
         self.assertEqual(order.spa_customer_type, 'silver')
         self.assertEqual(order.spa_customer_loyalty_point, 500)
         self.assertEqual(order.spa_tier_discount, 5.0)
+
+    def test_confirming_service_order_awards_loyalty_points_once(self):
+        service = self.env['product.product'].create({
+            'name': 'SPA Loyalty Points Service',
+            'type': 'service',
+            'list_price': 250000,
+        })
+        order = self.env['sale.order'].create({
+            'partner_id': self.partner.id,
+            'order_line': [(0, 0, {
+                'product_id': service.id,
+                'product_uom_qty': 1,
+            })],
+        })
+
+        order.action_confirm()
+
+        expected_amount_vnd = order.currency_id._convert(
+            order.order_line.price_total,
+            self.env.ref('base.VND'),
+            order.company_id,
+            fields.Date.context_today(order),
+        )
+        expected_points = int(expected_amount_vnd / 10_000)
+        transaction = self.env['customer.loyalty.transaction'].search([
+            ('sale_order_id', '=', order.id),
+        ])
+        self.assertEqual(self.partner.loyalty_point, expected_points)
+        self.assertEqual(len(transaction), 1)
+        self.assertEqual(transaction.state, 'applied')
+
+        order._award_spa_loyalty_points()
+
+        self.assertEqual(self.partner.loyalty_point, expected_points)
+        self.assertEqual(
+            self.env['customer.loyalty.transaction'].search_count([
+                ('sale_order_id', '=', order.id),
+            ]),
+            1,
+        )
 
     def test_rank_changes_do_not_reprice_existing_orders(self):
         self.partner.write({

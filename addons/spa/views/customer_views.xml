@@ -5,7 +5,7 @@
         <field name="inherit_id" ref="base.view_partner_form"/>
         <field name="arch" type="xml">
             <xpath expr="//sheet/notebook" position="inside">
-                <page string="Thông tin khách hàng" name="customer_care" groups="spa.group_customer_management_user">
+                <page string="Customer Information" name="customer_care" groups="spa.group_customer_management_user">
                     <group>
                         <group>
                             <field name="customer_code"/>
@@ -18,7 +18,7 @@
                         </group>
                     </group>
                     <notebook>
-                        <page string="Lịch sử sử dụng dịch vụ">
+                        <page string="Service History">
                             <field name="spa_appointment_ids"
                                    domain="[('status', '=', 'done')]"
                                    readonly="1">
@@ -31,7 +31,17 @@
                                 </list>
                             </field>
                         </page>
-                        <page string="Lịch sử điểm">
+                        <page string="Care Needs">
+                            <field name="care_need_ids" context="{'default_partner_id': id}">
+                                <list>
+                                    <field name="need_type"/>
+                                    <field name="next_date"/>
+                                    <field name="employee_id"/>
+                                    <field name="state"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Loyalty Points History">
                             <field name="loyalty_transaction_ids" context="{'default_partner_id': id}">
                                 <list>
                                     <field name="date"/>

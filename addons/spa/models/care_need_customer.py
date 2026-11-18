@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import api, models, fields
 
 class CustomerCareNeed(models.Model):
     _name = 'customer.care.need'
@@ -33,6 +33,21 @@ class CustomerCareNeed(models.Model):
             limit=1,
         ),
     )
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        need_type_labels = dict(self._fields['need_type'].selection)
+        for vals in vals_list:
+            if not vals.get('name'):
+                partner = self.env['res.partner'].browse(
+                    vals.get('partner_id')
+                )
+                need_type = vals.get('need_type') or 'consultation'
+                vals['name'] = '%s - %s' % (
+                    partner.display_name or 'Care Need',
+                    need_type_labels.get(need_type, need_type),
+                )
+        return super().create(vals_list)
 
     def action_start(self):
         self.write({'state': 'processing'})
