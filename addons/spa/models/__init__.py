@@ -16,3 +16,4 @@ from . import hr_employee
 from . import treatment_package
 from . import inventory
 from . import sales_commission
+from . import return_request
