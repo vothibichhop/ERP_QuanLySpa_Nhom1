@@ -39,6 +39,12 @@
         <field name="model">spa.work.shift</field>
         <field name="arch" type="xml">
             <form string="Ca làm việc">
+                <header>
+                    <button name="action_open_weekly_planner"
+                            type="object"
+                            string="Xếp ca theo tuần"
+                            class="btn-primary"/>
+                </header>
                 <sheet>
                     <group>
                         <group>

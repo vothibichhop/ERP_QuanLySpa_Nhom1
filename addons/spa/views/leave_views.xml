@@ -101,4 +101,11 @@
               action="action_spa_leave_request"
               sequence="30"
               groups="spa.group_customer_management_user"/>
+
+    <record id="menu_spa_leave_request" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
+    <record id="menu_spa_leave_request_employees" model="ir.ui.menu">
+        <field name="active" eval="False"/>
+    </record>
 </odoo>
