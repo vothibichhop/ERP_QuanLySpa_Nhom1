@@ -1,4 +1,5 @@
-from odoo import models
+from odoo import models, _
+from odoo.exceptions import UserError
 
 
 class AccountMove(models.Model):
@@ -21,11 +22,29 @@ class AccountMove(models.Model):
                 )._spa_auto_deduct_stock_on_invoice(invoice)
         return result
 
+    def _check_spa_return_refund_status(self):
+        requests = self.env['spa.return.request'].sudo().search([
+            ('credit_note_id', 'in', self.ids),
+            ('refund_confirmed', '=', True),
+        ])
+        if requests:
+            raise UserError(
+                _(
+                    'Không thể sửa hoặc hủy credit note sau khi yêu cầu đã '
+                    'được xác nhận hoàn tiền.'
+                )
+            )
+
+    def button_draft(self):
+        self._check_spa_return_refund_status()
+        return super().button_draft()
+
     def button_cancel(self):
-        result = super().button_cancel()
+        self._check_spa_return_refund_status()
         requests = self.env['spa.return.request'].sudo().search([
             ('credit_note_id', 'in', self.ids),
         ])
+        result = super().button_cancel()
         for request in requests:
             request._clear_credit_note(request.credit_note_id)
         return result

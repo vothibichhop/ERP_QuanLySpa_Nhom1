@@ -38,6 +38,16 @@ class TestSpaLeaveRequest(TransactionCase):
         self.assertEqual(leave.duration_days, 3)
         self.assertEqual(leave.total_sessions, 6)
 
+    def test_employee_action_opens_leave_form_for_employee(self):
+        action = self.employee.action_spa_create_leave()
+
+        self.assertEqual(action['res_model'], 'spa.leave.request')
+        self.assertEqual(action['view_mode'], 'form')
+        self.assertEqual(
+            action['context']['default_employee_id'],
+            self.employee.id,
+        )
+
     def test_partial_sessions_are_counted(self):
         leave = self._create_leave(
             start_session='afternoon',

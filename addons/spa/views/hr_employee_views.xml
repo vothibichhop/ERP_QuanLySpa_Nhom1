@@ -15,6 +15,13 @@
                            widget="statinfo"
                            string="Hoa hồng"/>
                 </button>
+                <button name="action_spa_create_leave"
+                        type="object"
+                        class="oe_stat_button"
+                        icon="fa-calendar-times-o"
+                        groups="spa.group_customer_management_user">
+                    <span class="o_stat_text">Thêm nghỉ phép</span>
+                </button>
             </xpath>
             <xpath expr="//notebook" position="inside">
                 <page name="spa_employee_information" string="Thông tin nhân sự">

@@ -360,6 +360,28 @@ class TestSpaEmployeeServices(TransactionCase):
 
         self.assertEqual(appointment.status, 'in_progress')
 
+    def test_confirmed_appointment_can_be_rescheduled(self):
+        appointment = self._create_appointment(
+            employee_id=False,
+            appointment_line_ids=[fields.Command.create({
+                'product_id': self.service.id,
+                'duration_minutes': 60,
+                'employee_id': self.employee.id,
+            })],
+        )
+        appointment.action_confirm()
+        rescheduled_date = self.work_date + timedelta(days=10)
+        self.env['spa.work.shift'].create({
+            'name': 'Ca sau khi đổi lịch',
+            'work_date': rescheduled_date,
+            'employee_ids': [(4, self.employee.id)],
+        })
+
+        appointment.write({'appointment_date': rescheduled_date})
+
+        self.assertEqual(appointment.appointment_date, rescheduled_date)
+        self.assertEqual(appointment.status, 'confirmed')
+
     def test_service_employee_cannot_be_assigned_before_the_day_before(self):
         appointment_date = (
             fields.Date.context_today(self.env.user) + timedelta(days=10)
