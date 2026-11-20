@@ -1,10 +1,12 @@
+import re
+
 from odoo import api, fields, models
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 SPA_LOYALTY_TIERS = (
-    ('diamond', 2000, 20.0),
-    ('gold', 1500, 10.0),
-    ('silver', 500, 5.0),
+    ('diamond', 1501, 20.0),
+    ('gold', 500, 10.0),
+    ('silver', 100, 5.0),
 )
 
 
@@ -54,6 +56,31 @@ class ResPartner(models.Model):
     loyalty_transaction_ids = fields.One2many(
         'customer.loyalty.transaction', 'partner_id', string='Lịch sử điểm'
     )
+    spa_customer_package_ids = fields.One2many(
+        'spa.customer.package',
+        'partner_id',
+        string='Gói liệu trình',
+        readonly=True,
+        copy=False,
+    )
+
+    @api.constrains('phone', 'mobile')
+    def _check_customer_phone_numbers(self):
+        for partner in self:
+            for number in (partner.phone, partner.mobile):
+                if not number:
+                    continue
+                if not re.fullmatch(r'[0-9\s().-]+', number):
+                    raise ValidationError(
+                        'Số điện thoại khách hàng chỉ được chứa chữ số và dấu '
+                        'cách, dấu chấm, dấu ngoặc hoặc dấu gạch ngang.'
+                    )
+                normalized_number = re.sub(r'[\s().-]', '', number)
+                if not re.fullmatch(r'0[0-9]{9}', normalized_number):
+                    raise ValidationError(
+                        'Số điện thoại khách hàng phải gồm đúng 10 chữ số '
+                        'và bắt đầu bằng 0.'
+                    )
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -65,7 +92,27 @@ class ResPartner(models.Model):
         )
         for partner in customers:
             partner.customer_code = self._next_customer_code()
+        for partner, values in zip(partners, vals_list):
+            if 'loyalty_point' in values:
+                partner.write({
+                    'customer_type': partner._customer_type_for_loyalty_points(
+                        partner.loyalty_point
+                    ),
+                })
         return partners
+
+    def write(self, vals):
+        result = super().write(vals)
+        if 'loyalty_point' in vals:
+            for partner in self:
+                customer_type = partner._customer_type_for_loyalty_points(
+                    partner.loyalty_point
+                )
+                if partner.customer_type != customer_type:
+                    super(ResPartner, partner).write({
+                        'customer_type': customer_type,
+                    })
+        return result
 
     @api.model
     def _next_customer_code(self):
@@ -90,11 +137,11 @@ class ResPartner(models.Model):
 
     def _get_spa_tier_discount_percentage(self):
         self.ensure_one()
-        for customer_type, minimum_points, discount in SPA_LOYALTY_TIERS:
-            if (
-                self.customer_type == customer_type
-                and self.loyalty_point >= minimum_points
-            ):
+        tier_type = self._customer_type_for_loyalty_points(
+            self.loyalty_point
+        )
+        for customer_type, _minimum_points, discount in SPA_LOYALTY_TIERS:
+            if tier_type == customer_type:
                 return discount
         return 0.0
 

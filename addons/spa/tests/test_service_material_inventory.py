@@ -183,6 +183,33 @@ class TestSpaServiceMaterialInventory(TransactionCase):
         )
         self.assertEqual(appointment.status, 'done')
 
+    def test_fixed_combo_choice_auto_selects_the_only_service(self):
+        combo_choice = self.env['product.combo'].create({
+            'name': 'Mục combo cố định',
+            'combo_item_ids': [(0, 0, {
+                'product_id': self.service.product_variant_id.id,
+            })],
+        })
+        combo = self.env['product.template'].create({
+            'name': 'Combo cố định kiểm thử',
+            'type': 'combo',
+            'combo_ids': [(6, 0, combo_choice.ids)],
+            'spa_duration_minutes': 60,
+        })
+        appointment = self._create_appointment(
+            service_product_id=False,
+            appointment_line_ids=[(0, 0, {
+                'product_id': combo.id,
+                'duration_minutes': 60,
+                'combo_choice_ids': [(0, 0, {
+                    'combo_id': combo_choice.id,
+                })],
+            })],
+        )
+
+        choice = appointment.appointment_line_ids.combo_choice_ids
+        self.assertEqual(choice.combo_item_id, combo_choice.combo_item_ids)
+
     def test_combo_material_quantities_include_selected_service_recipes(self):
         combo_choices = self.env['product.combo'].create([{
             'name': 'Dịch vụ combo kiểm thử lượt 1',

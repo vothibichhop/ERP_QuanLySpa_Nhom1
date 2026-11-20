@@ -17,6 +17,13 @@ class CustomerLoyaltyTransaction(models.Model):
         copy=False,
         ondelete='restrict',
     )
+    sale_order_id = fields.Many2one(
+        'sale.order',
+        string='Đơn bán hàng',
+        readonly=True,
+        copy=False,
+        ondelete='restrict',
+    )
     date = fields.Date(string='Ngày giao dịch', default=fields.Date.context_today, required=True)
     transaction_type = fields.Selection([
         ('earn', 'Cộng điểm'),
@@ -38,6 +45,11 @@ class CustomerLoyaltyTransaction(models.Model):
             'spa_appointment_loyalty_unique',
             'unique(appointment_id)',
             'Mỗi lịch hẹn Spa chỉ được cộng điểm một lần.',
+        ),
+        (
+            'spa_sale_order_loyalty_unique',
+            'unique(sale_order_id)',
+            'Mỗi đơn bán hàng chỉ được cộng điểm một lần.',
         ),
     ]
 

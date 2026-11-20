@@ -49,6 +49,7 @@ class TestSpaTreatmentPackages(TransactionCase):
             customer_package.start_date + timedelta(days=29),
         )
         self.assertEqual(customer_package.state, 'active')
+        self.assertIn(customer_package, self.customer.spa_customer_package_ids)
         self.package.write({'validity_days': 60, 'price': 300.0})
         self.assertEqual(
             customer_package.expiration_date,

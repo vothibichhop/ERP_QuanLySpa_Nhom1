@@ -41,15 +41,27 @@
                    position="after">
                 <field name="spa_customer_type" readonly="1"/>
                 <field name="spa_customer_loyalty_point" readonly="1"/>
-                <field name="spa_tier_discount" readonly="1"/>
                 <field name="spa_appointment_id"
                        readonly="1"
                        invisible="not spa_appointment_id"/>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/form//field[@name='product_id']"
+                   position="attributes">
+                <attribute name="domain">[('sale_ok', '=', True), ('type', 'in', ('product', 'consu'))]</attribute>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_id']"
+                   position="attributes">
+                <attribute name="domain">[('sale_ok', '=', True), ('type', 'in', ('product', 'consu'))]</attribute>
+            </xpath>
+            <xpath expr="//field[@name='order_line']/list/field[@name='product_template_id']"
+                   position="attributes">
+                <attribute name="domain">[('sale_ok', '=', True), ('type', 'in', ('product', 'consu'))]</attribute>
             </xpath>
             <xpath expr="//field[@name='order_line']/list/field[@name='product_id']"
                    position="after">
                 <field name="spa_employee_id"
                        string="Nhân viên bán sản phẩm"
+                       optional="hide"
                        required="product_id and product_id.type in ('product', 'consu')"
                        domain="[('active', '=', True)]"
                        force_save="1"
@@ -57,23 +69,23 @@
                        help="Chọn nhân viên trực tiếp trên dòng sản phẩm bán lẻ."
                        readonly="not product_id or product_id.type not in ('product', 'consu')"/>
                 <field name="spa_commission_rate"
-                       optional="show"
+                       optional="hide"
                        invisible="not product_id or product_id.type not in ('product', 'consu')"
                        readonly="1"/>
                 <field name="spa_commission_amount"
-                       optional="show"
+                       optional="hide"
                        invisible="not product_id or product_id.type not in ('product', 'consu')"
                        readonly="1"/>
                 <field name="spa_commission_calculated"
                        string="Đã tính hoa hồng"
                        widget="boolean"
-                       optional="show"
+                       optional="hide"
                        invisible="not product_id or product_id.type not in ('product', 'consu')"
                        readonly="1"/>
                 <field name="spa_commission_status"
                        string="Trạng thái hoa hồng"
                        widget="badge"
-                       optional="show"
+                       optional="hide"
                        invisible="not product_id or product_id.type not in ('product', 'consu')"
                        readonly="1"/>
             </xpath>

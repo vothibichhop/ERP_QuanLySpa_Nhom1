@@ -1,10 +1,17 @@
 from odoo import api, fields, models
 from odoo.exceptions import AccessError, UserError
+from odoo.osv import expression
 from odoo.tools.float_utils import float_compare
 
 
 class SaleOrder(models.Model):
     _inherit = 'sale.order'
+
+    def _get_product_catalog_domain(self):
+        return expression.AND([
+            super()._get_product_catalog_domain(),
+            [('type', 'in', ('product', 'consu'))],
+        ])
 
     spa_customer_type = fields.Selection(
         related='partner_id.customer_type',
@@ -35,7 +42,7 @@ class SaleOrder(models.Model):
         string='Yêu cầu trả hàng',
     )
     spa_returnable_picking_count = fields.Integer(
-        string='Phiếu giao hàng có thể trả',
+        string='Phiếu xuất kho có thể trả',
         compute='_compute_spa_return_refund_counts',
     )
     spa_refundable_invoice_count = fields.Integer(
@@ -94,7 +101,75 @@ class SaleOrder(models.Model):
                 ) > 0:
                     returnable_pickings |= picking
                     break
+
+        invoices = self.invoice_ids.filtered(
+            lambda invoice: (
+                invoice.move_type == 'out_invoice'
+                and invoice.state == 'posted'
+            )
+        )
+        invoice_pickings = self.env['stock.picking'].search([
+            ('origin', 'in', invoices.mapped('name')),
+            ('company_id', '=', self.company_id.id),
+            ('state', '=', 'done'),
+            ('picking_type_code', '=', 'outgoing'),
+        ])
+        for picking in invoice_pickings:
+            products = self._get_spa_invoice_stock_products(picking)
+            for move in picking.move_ids.filtered(
+                lambda record: (
+                    record.state == 'done'
+                    and not record.scrapped
+                    and record.product_id.is_storable
+                    and record.product_id in products
+                )
+            ):
+                if float_compare(
+                    request_model._available_return_quantity(move),
+                    0.0,
+                    precision_rounding=move.product_id.uom_id.rounding,
+                ) > 0:
+                    returnable_pickings |= picking
+                    break
         return returnable_pickings
+
+    def _get_spa_invoice_stock_products(self, picking):
+        self.ensure_one()
+        invoices = self.invoice_ids.filtered(
+            lambda invoice: (
+                invoice.name == picking.origin
+                and invoice.move_type == 'out_invoice'
+                and invoice.state == 'posted'
+            )
+        )
+        return invoices.invoice_line_ids.filtered(
+            lambda line: (
+                line.display_type == 'product'
+                and line.product_id.is_storable
+                and self in line.sale_line_ids.order_id
+            )
+        ).mapped('product_id')
+
+    def _is_spa_invoice_stock_picking(self, picking):
+        self.ensure_one()
+        if (
+            not picking
+            or picking.company_id != self.company_id
+            or picking.state != 'done'
+            or picking.picking_type_code != 'outgoing'
+        ):
+            return False
+        products = self._get_spa_invoice_stock_products(picking)
+        return bool(
+            products
+            and picking.move_ids.filtered(
+                lambda move: (
+                    move.state == 'done'
+                    and not move.scrapped
+                    and move.product_id in products
+                )
+            )
+        )
 
     def _get_spa_refundable_invoices(self):
         self.ensure_one()
@@ -150,9 +225,18 @@ class SaleOrder(models.Model):
             'type': 'ir.actions.act_window',
             'name': 'Yêu cầu trả hàng',
             'res_model': 'spa.return.request',
-            'view_mode': 'list,form',
-            'domain': [('order_id', '=', self.id)],
-            'context': {'default_order_id': self.id},
+            'view_mode': 'form',
+            'views': [(
+                self.env.ref('spa.view_spa_return_request_form').id,
+                'form',
+            )],
+            'target': 'current',
+            'context': {
+                'default_order_id': self.id,
+                'default_delivery_picking_id': (
+                    pickings.id if len(pickings) == 1 else False
+                ),
+            },
         }
 
     def action_spa_create_refund(self):
@@ -269,7 +353,61 @@ class SaleOrder(models.Model):
         result = super().action_confirm()
         self._create_spa_customer_packages()
         self._create_spa_sales_commissions_on_confirmation()
+        self._award_spa_loyalty_points()
         return result
+
+    def _award_spa_loyalty_points(self):
+        transaction_model = self.env['customer.loyalty.transaction'].sudo()
+        vnd_currency = self.env.ref('base.VND')
+        for order in self.filtered(lambda item: item.state in ('sale', 'done')):
+            service_lines = order.order_line.filtered(
+                lambda line: (
+                    not line.display_type
+                    and line.product_id.type in ('service', 'combo')
+                )
+            )
+            if not service_lines:
+                continue
+
+            transaction_domain = [('sale_order_id', '=', order.id)]
+            if order.spa_appointment_id:
+                transaction_domain = [
+                    '|',
+                    ('sale_order_id', '=', order.id),
+                    ('appointment_id', '=', order.spa_appointment_id.id),
+                ]
+            existing_transaction = transaction_model.search(
+                transaction_domain,
+                limit=1,
+            )
+            if existing_transaction:
+                continue
+
+            amount_vnd = order.currency_id._convert(
+                sum(service_lines.mapped('price_total')),
+                vnd_currency,
+                order.company_id,
+                fields.Date.context_today(order),
+            )
+            points = int(amount_vnd / 10_000)
+            if points <= 0:
+                continue
+
+            transaction = transaction_model.create({
+                'name': f'Tích điểm từ đơn hàng {order.name}',
+                'partner_id': order.partner_id.id,
+                'appointment_id': order.spa_appointment_id.id,
+                'sale_order_id': order.id,
+                'date': fields.Date.context_today(order),
+                'transaction_type': 'earn',
+                'points': points,
+                'note': (
+                    f'Tự động cộng {points} điểm từ dịch vụ trong đơn hàng '
+                    f'{order.name}, trị giá '
+                    f'{vnd_currency.round(amount_vnd):,.0f} VND.'
+                ),
+            })
+            transaction.action_apply_points()
 
     def _create_spa_customer_packages(self):
         customer_package_model = self.env['spa.customer.package']
