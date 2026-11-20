@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="product_spa_material_shampoo" model="product.template">
+            <field name="name">Dầu gội dùng trong dịch vụ Spa</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-017</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">120</field>
+        </record>
+        <record id="product_spa_material_conditioner" model="product.template">
+            <field name="name">Dầu xả dùng trong dịch vụ Spa</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-018</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">130</field>
+        </record>
+        <record id="product_spa_material_herbal_bath" model="product.template">
+            <field name="name">Thảo dược ngâm tắm</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="uom_po_id" ref="uom.product_uom_gram"/>
+            <field name="default_code">NVL-019</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">250</field>
+        </record>
+        <record id="product_spa_material_milk_bath" model="product.template">
+            <field name="name">Bột sữa ngâm bồn</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="uom_po_id" ref="uom.product_uom_gram"/>
+            <field name="default_code">NVL-020</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">300</field>
+        </record>
+        <record id="product_spa_material_flower_bath" model="product.template">
+            <field name="name">Cánh hoa ngâm bồn</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="uom_po_id" ref="uom.product_uom_gram"/>
+            <field name="default_code">NVL-021</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">200</field>
+        </record>
+        <record id="product_spa_material_gel_polish" model="product.template">
+            <field name="name">Sơn gel dùng trong dịch vụ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-022</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">5000</field>
+        </record>
+        <record id="product_spa_material_nail_extension_gel" model="product.template">
+            <field name="name">Gel đắp móng</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom_spa_millilitre"/>
+            <field name="uom_po_id" ref="uom_spa_millilitre"/>
+            <field name="default_code">NVL-023</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">5000</field>
+        </record>
+        <record id="product_spa_material_wax" model="product.template">
+            <field name="name">Sáp wax dùng trong dịch vụ</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="uom_po_id" ref="uom.product_uom_gram"/>
+            <field name="default_code">NVL-024</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">300</field>
+        </record>
+        <record id="product_spa_material_bath_salt" model="product.template">
+            <field name="name">Muối ngâm tắm và xông hơi</field>
+            <field name="type">consu</field>
+            <field name="is_storable" eval="True"/>
+            <field name="sale_ok" eval="False"/>
+            <field name="purchase_ok" eval="True"/>
+            <field name="uom_id" ref="uom.product_uom_gram"/>
+            <field name="uom_po_id" ref="uom.product_uom_gram"/>
+            <field name="default_code">NVL-025</field>
+            <field name="spa_inventory_type">service_material</field>
+            <field name="standard_price">100</field>
+        </record>
+    </data>
+</odoo>

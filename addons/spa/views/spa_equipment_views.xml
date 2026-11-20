@@ -1,0 +1,357 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_spa_equipment_asset_list" model="ir.ui.view">
+        <field name="name">spa.equipment.asset.list</field>
+        <field name="model">spa.equipment.asset</field>
+        <field name="arch" type="xml">
+            <list string="Máy móc, thiết bị Spa"
+                  decoration-danger="status in ('reported', 'waiting_repair', 'in_repair', 'scrapped')"
+                  decoration-success="status in ('available', 'in_use')">
+                <field name="asset_code"/>
+                <field name="product_id"/>
+                <field name="serial_number"/>
+                <field name="location_id"/>
+                <field name="purchase_date"/>
+                <field name="warranty_end_date"/>
+                <field name="status" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_equipment_asset_form" model="ir.ui.view">
+        <field name="name">spa.equipment.asset.form</field>
+        <field name="model">spa.equipment.asset</field>
+        <field name="arch" type="xml">
+            <form string="Thiết bị Spa">
+                <header>
+                    <button name="action_mark_in_use"
+                            type="object"
+                            string="Đưa vào sử dụng"
+                            invisible="status != 'available'"/>
+                    <button name="action_mark_available"
+                            type="object"
+                            string="Đánh dấu sẵn sàng"
+                            invisible="status != 'in_use'"/>
+                    <button name="action_report_breakdown"
+                            type="object"
+                            string="Báo hỏng"
+                            class="btn-primary"
+                            invisible="status not in ('available', 'in_use')"/>
+                    <field name="status"
+                           widget="statusbar"
+                           readonly="1"
+                           statusbar_visible="available,in_use,reported,waiting_repair,in_repair,scrapped"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_repairs"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-wrench">
+                            <field name="repair_count"
+                                   widget="statinfo"
+                                   string="Phiếu báo hỏng"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="asset_code" string="Mã tài sản"/>
+                        <h1><field name="asset_code"/></h1>
+                    </div>
+                    <group>
+                        <group string="Thông tin thiết bị">
+                            <field name="product_id"
+                                   domain="[('is_storable', '=', True), ('product_tmpl_id.spa_inventory_type', '=', 'equipment')]"/>
+                            <field name="serial_number"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                            <field name="location_id"
+                                   domain="[('usage', '=', 'internal'), ('company_id', 'in', [company_id, False])]"/>
+                        </group>
+                        <group string="Mua hàng và bảo hành">
+                            <field name="purchase_date"/>
+                            <field name="warranty_end_date"/>
+                            <field name="vendor_id"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Ghi chú">
+                            <field name="note" placeholder="Thông tin bổ sung về thiết bị"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_spa_equipment_asset_search" model="ir.ui.view">
+        <field name="name">spa.equipment.asset.search</field>
+        <field name="model">spa.equipment.asset</field>
+        <field name="arch" type="xml">
+            <search string="Tìm thiết bị Spa">
+                <field name="asset_code"/>
+                <field name="product_id"/>
+                <field name="serial_number"/>
+                <field name="location_id"/>
+                <filter name="equipment_needs_repair"
+                        string="Đang hư hỏng/sửa chữa"
+                        domain="[('status', 'in', ('reported', 'waiting_repair', 'in_repair'))]"/>
+                <filter name="equipment_scrapped"
+                        string="Đã thanh lý"
+                        domain="[('status', '=', 'scrapped')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_equipment_status"
+                            string="Tình trạng"
+                            context="{'group_by': 'status'}"/>
+                    <filter name="group_equipment_location"
+                            string="Vị trí"
+                            context="{'group_by': 'location_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="view_spa_equipment_repair_list" model="ir.ui.view">
+        <field name="name">spa.equipment.repair.list</field>
+        <field name="model">spa.equipment.repair</field>
+        <field name="arch" type="xml">
+            <list string="Phiếu báo hỏng thiết bị"
+                  decoration-danger="priority == '2'"
+                  decoration-muted="state in ('repaired', 'scrapped', 'cancelled')">
+                <field name="name"/>
+                <field name="reported_at"/>
+                <field name="asset_id"/>
+                <field name="priority" widget="priority"/>
+                <field name="assigned_employee_id"/>
+                <field name="vendor_id"/>
+                <field name="repair_cost" sum="Tổng chi phí"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_equipment_repair_form" model="ir.ui.view">
+        <field name="name">spa.equipment.repair.form</field>
+        <field name="model">spa.equipment.repair</field>
+        <field name="arch" type="xml">
+            <form string="Phiếu báo hỏng thiết bị">
+                <header>
+                    <button name="action_mark_waiting"
+                            type="object"
+                            string="Chờ sửa chữa"
+                            invisible="state != 'reported'"/>
+                    <button name="action_start_repair"
+                            type="object"
+                            string="Bắt đầu sửa"
+                            class="btn-primary"
+                            invisible="state not in ('reported', 'waiting')"/>
+                    <button name="action_mark_repaired"
+                            type="object"
+                            string="Hoàn tất sửa chữa"
+                            class="btn-primary"
+                            invisible="state != 'in_repair'"/>
+                    <button name="action_scrap"
+                            type="object"
+                            string="Thanh lý thiết bị"
+                            confirm="Xác nhận thanh lý thiết bị này?"
+                            invisible="state not in ('reported', 'waiting', 'in_repair')"/>
+                    <button name="action_cancel"
+                            type="object"
+                            string="Hủy phiếu"
+                            confirm="Xác nhận hủy phiếu báo hỏng?"
+                            invisible="state not in ('reported', 'waiting')"/>
+                    <field name="state"
+                           widget="statusbar"
+                           statusbar_visible="reported,waiting,in_repair,repaired,scrapped,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Mã phiếu"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Thông tin báo hỏng">
+                            <field name="asset_id" readonly="id"/>
+                            <field name="reported_at"/>
+                            <field name="reporter_id"/>
+                            <field name="priority"
+                                   widget="priority"
+                                   readonly="state not in ('reported', 'waiting')"/>
+                            <field name="previous_asset_status"/>
+                        </group>
+                        <group string="Xử lý sửa chữa">
+                            <field name="assigned_employee_id"
+                                   readonly="state in ('repaired', 'scrapped', 'cancelled')"/>
+                            <field name="vendor_id"
+                                   readonly="state in ('repaired', 'scrapped', 'cancelled')"/>
+                            <field name="sent_for_repair_date"
+                                   readonly="state in ('repaired', 'scrapped', 'cancelled')"/>
+                            <field name="repaired_date"
+                                   invisible="state != 'repaired'"/>
+                            <field name="repair_cost"
+                                   readonly="state in ('repaired', 'scrapped', 'cancelled')"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Mô tả sự cố">
+                            <field name="description"
+                                   placeholder="Mô tả tình trạng hư hỏng và dấu hiệu sự cố"
+                                   readonly="state != 'reported'"/>
+                        </page>
+                        <page string="Kết quả xử lý"
+                              invisible="state not in ('repaired', 'scrapped')">
+                            <field name="resolution"
+                                   placeholder="Ghi kết quả sửa chữa hoặc lý do thanh lý"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_spa_equipment_repair_search" model="ir.ui.view">
+        <field name="name">spa.equipment.repair.search</field>
+        <field name="model">spa.equipment.repair</field>
+        <field name="arch" type="xml">
+            <search string="Tìm phiếu báo hỏng">
+                <field name="name"/>
+                <field name="asset_id"/>
+                <field name="assigned_employee_id"/>
+                <field name="vendor_id"/>
+                <filter name="repair_open"
+                        string="Chưa hoàn tất"
+                        domain="[('state', 'in', ('reported', 'waiting', 'in_repair'))]"/>
+                <filter name="repair_urgent"
+                        string="Khẩn cấp"
+                        domain="[('priority', '=', '2')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_repair_state"
+                            string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_repair_priority"
+                            string="Mức độ ưu tiên"
+                            context="{'group_by': 'priority'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_spa_equipment_assets" model="ir.actions.act_window">
+        <field name="name">Máy móc, thiết bị</field>
+        <field name="res_model">spa.equipment.asset</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_spa_equipment_asset_search"/>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="action_spa_equipment_repairs" model="ir.actions.act_window">
+        <field name="name">Phiếu báo hỏng</field>
+        <field name="res_model">spa.equipment.repair</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_spa_equipment_repair_search"/>
+        <field name="context">{}</field>
+    </record>
+
+    <record id="view_spa_equipment_breakdown_report_list" model="ir.ui.view">
+        <field name="name">spa.equipment.breakdown.report.list</field>
+        <field name="model">spa.equipment.breakdown.report</field>
+        <field name="arch" type="xml">
+            <list string="Phiếu báo hỏng">
+                <field name="name"/>
+                <field name="reported_at"/>
+                <field name="product_id"/>
+                <field name="reporter_id"/>
+                <field name="priority" widget="priority"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_equipment_breakdown_report_form" model="ir.ui.view">
+        <field name="name">spa.equipment.breakdown.report.form</field>
+        <field name="model">spa.equipment.breakdown.report</field>
+        <field name="arch" type="xml">
+            <form string="Phiếu báo hỏng thiết bị">
+                <header>
+                    <button name="action_submit"
+                            type="object"
+                            string="Gửi phiếu báo hỏng"
+                            class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <field name="state"
+                           widget="statusbar"
+                           statusbar_visible="draft,submitted"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name" string="Mã phiếu"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Thông tin báo hỏng">
+                            <field name="product_id"
+                                   domain="[('is_storable', '=', True), ('product_tmpl_id.spa_inventory_type', '=', 'equipment')]"
+                                   readonly="state != 'draft'"
+                                   options="{'no_create': True}"/>
+                            <field name="priority" readonly="state != 'draft'"/>
+                            <field name="reporter_id"/>
+                            <field name="reported_at"/>
+                        </group>
+                    </group>
+                    <group string="Mô tả sự cố">
+                        <field name="description"
+                               readonly="state != 'draft'"
+                               placeholder="Mô tả tình trạng hư hỏng và dấu hiệu sự cố"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_spa_equipment_breakdown_report_search" model="ir.ui.view">
+        <field name="name">spa.equipment.breakdown.report.search</field>
+        <field name="model">spa.equipment.breakdown.report</field>
+        <field name="arch" type="xml">
+            <search string="Tìm phiếu báo hỏng">
+                <field name="name"/>
+                <field name="product_id"/>
+                <field name="reporter_id"/>
+                <filter name="breakdown_report_draft"
+                        string="Chưa gửi"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="breakdown_report_submitted"
+                        string="Đã gửi"
+                        domain="[('state', '=', 'submitted')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_breakdown_report_state"
+                            string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                    <filter name="group_breakdown_report_product"
+                            string="Thiết bị"
+                            context="{'group_by': 'product_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_spa_equipment_breakdown_reports" model="ir.actions.act_window">
+        <field name="name">Phiếu báo hỏng</field>
+        <field name="res_model">spa.equipment.breakdown.report</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_spa_equipment_breakdown_report_search"/>
+        <field name="context">{'default_state': 'draft'}</field>
+    </record>
+
+    <menuitem id="menu_spa_equipment_assets"
+              name="Máy móc, thiết bị"
+              parent="menu_spa_inventory_items"
+              action="action_spa_equipment_assets"
+              sequence="9"
+              groups="stock.group_stock_user"/>
+    <menuitem id="menu_spa_equipment_repairs"
+              name="Phiếu báo hỏng"
+              parent="menu_spa_inventory_items"
+              action="action_spa_equipment_breakdown_reports"
+              sequence="10"
+              groups="stock.group_stock_user"/>
+</odoo>

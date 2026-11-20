@@ -426,6 +426,28 @@ class SpaReturnRequest(models.Model):
             or self.env.user.has_group('hr.group_hr_manager')
         )
 
+    def _ensure_delivery_picking(self):
+        self.ensure_one()
+        pickings = (
+            self.order_id._get_spa_returnable_pickings()
+            if self.order_id
+            else self.env['stock.picking']
+        )
+        if not pickings:
+            return False
+        if self.delivery_picking_id not in pickings:
+            if len(pickings) != 1:
+                return False
+            self.delivery_picking_id = pickings
+        for line in self.line_ids:
+            if not line.move_id or line.move_id.picking_id != self.delivery_picking_id:
+                line.move_id = line._find_move_for_product(
+                    self,
+                    line.product_choice_id,
+                    line,
+                )
+        return bool(self.delivery_picking_id)
+
     @api.depends(
         'return_picking_id',
         'return_picking_id.state',
@@ -595,6 +617,7 @@ class SpaReturnRequest(models.Model):
                 )
             if not request.reason or not request.reason.strip():
                 raise UserError(_('Vui lòng nhập lý do trả hàng.'))
+            request._ensure_delivery_picking()
             if not request.line_ids:
                 raise UserError(_('Chọn ít nhất một sản phẩm và số lượng cần trả.'))
             if not request.delivery_picking_id:
@@ -1214,6 +1237,9 @@ class AccountMoveReversal(models.TransientModel):
     def refund_moves(self):
         for wizard in self.filtered('spa_return_request_id'):
             request = wizard.spa_return_request_id
+            if request and request.invoice_id:
+                if wizard.move_ids != request.invoice_id:
+                    wizard.move_ids = [(6, 0, request.invoice_id.ids)]
             if (
                 not request
                 or request.state != 'approved'
@@ -1236,20 +1262,25 @@ class AccountMoveReversal(models.TransientModel):
             request = wizard.spa_return_request_id
             request_sudo = request.sudo()
             remaining_quantities = {}
+            returned_quantities_by_product = {}
             return_pickings = request_sudo._get_return_pickings()
             for move in return_pickings.move_ids.filtered(
                 lambda item: item.state == 'done'
             ):
                 sale_line = move.origin_returned_move_id.sale_line_id
-                if not sale_line:
-                    continue
                 returned_quantity = move.product_uom._compute_quantity(
                     move.quantity, move.product_id.uom_id
                 )
-                remaining_quantities[sale_line.id] = (
-                    remaining_quantities.get(sale_line.id, 0.0)
+                product_id = move.product_id.id
+                returned_quantities_by_product[product_id] = (
+                    returned_quantities_by_product.get(product_id, 0.0)
                     + returned_quantity
                 )
+                if sale_line:
+                    remaining_quantities[sale_line.id] = (
+                        remaining_quantities.get(sale_line.id, 0.0)
+                        + returned_quantity
+                    )
             adjusted_lines = credit_notes.invoice_line_ids.filtered(
                 lambda line: line.display_type == 'product' and line.product_id
             )
@@ -1259,6 +1290,15 @@ class AccountMoveReversal(models.TransientModel):
                     for sale_line in line.sale_line_ids
                     if sale_line.order_id == request_sudo.order_id
                 )
+                if float_compare(
+                    available_quantity,
+                    0.0,
+                    precision_rounding=line.product_id.uom_id.rounding,
+                ) <= 0:
+                    available_quantity = returned_quantities_by_product.get(
+                        line.product_id.id,
+                        0.0,
+                    )
                 invoice_quantity = line.product_uom_id._compute_quantity(
                     line.quantity, line.product_id.uom_id
                 )

@@ -125,6 +125,22 @@ class TestSpaReturnsRefunds(TransactionCase):
         request.with_user(manager).action_approve()
 
         self.assertEqual(request.return_picking_id.return_id, picking)
+        self._receive_return(request.return_picking_id)
+        request.invoice_id = invoice
+        action = request.action_create_refund()
+        wizard = Form(
+            self.env['account.move.reversal'].with_context(
+                **action['context']
+            )
+        ).save()
+        wizard.refund_moves()
+        credit_note = wizard.new_move_ids
+
+        self.assertEqual(credit_note.move_type, 'out_refund')
+        refunded_lines = credit_note.invoice_line_ids.filtered(
+            lambda line: line.product_id == product
+        )
+        self.assertAlmostEqual(refunded_lines.quantity, 1.0)
 
     def test_return_action_opens_prefilled_request_form(self):
         order, product, delivery = self._create_delivered_order()
@@ -178,6 +194,24 @@ class TestSpaReturnsRefunds(TransactionCase):
         self.assertEqual(request.line_ids.product_id, product)
         self.assertEqual(request.line_ids.move_id.picking_id, delivery)
         self.assertAlmostEqual(request.line_ids.quantity, 1.0)
+
+    def test_submit_refreshes_missing_delivery_picking_selection(self):
+        order, product, delivery = self._create_delivered_order()
+        request = self.env['spa.return.request'].create({
+            'order_id': order.id,
+            'reason': 'Khách yêu cầu trả sản phẩm.',
+            'line_ids': [(0, 0, {
+                'product_choice_id': product.id,
+                'quantity': 1,
+            })],
+        })
+
+        self.assertFalse(request.delivery_picking_id)
+        request.action_submit()
+
+        self.assertEqual(request.delivery_picking_id, delivery)
+        self.assertEqual(request.line_ids.move_id.picking_id, delivery)
+        self.assertEqual(request.state, 'submitted')
 
     def test_order_products_are_selectable_before_delivery_but_cannot_submit(self):
         product = self.env['product.product'].create({

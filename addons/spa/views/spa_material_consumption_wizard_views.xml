@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_spa_material_consumption_wizard_form" model="ir.ui.view">
+        <field name="name">spa.material.consumption.wizard.form</field>
+        <field name="model">spa.material.consumption.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Xác nhận nguyên vật liệu sử dụng">
+                <group>
+                    <field name="appointment_id"/>
+                </group>
+                <div class="alert alert-info" role="alert">
+                    Điều chỉnh số lượng thực tế đã dùng. Hệ thống điền sẵn định lượng
+                    cho mỗi khách nhân với số khách; chỉ xác nhận xuất kho sau khi bạn
+                    bấm nút bên dưới.
+                </div>
+                <field name="line_ids">
+                    <list editable="bottom" create="0" delete="0">
+                        <field name="product_id"/>
+                        <field name="planned_quantity"/>
+                        <field name="quantity"/>
+                        <field name="uom_id"/>
+                    </list>
+                </field>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Xác nhận xuất kho &amp; hoàn tất"
+                            class="btn-primary"/>
+                    <button string="Hủy" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

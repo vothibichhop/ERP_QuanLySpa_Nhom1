@@ -169,16 +169,16 @@
     </record>
 
     <record id="action_spa_return_request" model="ir.actions.act_window">
-        <field name="name">Trả hàng và hoàn tiền</field>
+        <field name="name">Returns and Refunds</field>
         <field name="res_model">spa.return.request</field>
         <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_spa_return_request_search"/>
     </record>
 
     <menuitem id="menu_spa_return_request"
-              name="Trả hàng và hoàn tiền"
-              parent="menu_customer_management_root"
+              name="Returns and Refunds"
+              parent="sale.sale_order_menu"
               action="action_spa_return_request"
-              sequence="16"
+              sequence="25"
               groups="spa.group_customer_management_manager,stock.group_stock_user,account.group_account_invoice"/>
 </odoo>
