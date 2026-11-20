@@ -20,7 +20,6 @@ class SpaReturnRequest(models.Model):
         'sale.order',
         string='Đơn bán hàng',
         required=True,
-        readonly=True,
         index=True,
         ondelete='restrict',
     )
@@ -31,11 +30,13 @@ class SpaReturnRequest(models.Model):
     )
     delivery_picking_id = fields.Many2one(
         'stock.picking',
-        string='Phiếu giao hàng',
-        required=True,
+        string='Phiếu xuất kho',
         ondelete='restrict',
-        domain="[('sale_id', '=', order_id), ('state', '=', 'done'), "
-               "('picking_type_code', '=', 'outgoing')]",
+    )
+    returnable_picking_ids = fields.Many2many(
+        'stock.picking',
+        compute='_compute_returnable_picking_ids',
+        compute_sudo=True,
     )
     line_ids = fields.One2many(
         'spa.return.request.line',
@@ -94,13 +95,64 @@ class SpaReturnRequest(models.Model):
         ondelete='restrict',
     )
     return_state = fields.Selection(
-        related='return_picking_id.state',
+        [
+            ('not_created', 'Chưa tạo phiếu nhập trả'),
+            ('draft', 'Nháp'),
+            ('waiting', 'Chờ xử lý'),
+            ('confirmed', 'Đã xác nhận'),
+            ('assigned', 'Sẵn sàng'),
+            ('done', 'Đã nhận'),
+            ('cancel', 'Đã hủy'),
+        ],
+        compute='_compute_return_state',
         string='Trạng thái nhận hàng',
     )
     return_received = fields.Boolean(
         string='Đã nhận đủ hàng trả',
         compute='_compute_return_received',
         compute_sudo=True,
+    )
+    return_product_summary = fields.Char(
+        string='Sản phẩm trả',
+        compute='_compute_return_line_summaries',
+    )
+    return_quantity_summary = fields.Char(
+        string='Số lượng trả',
+        compute='_compute_return_line_summaries',
+    )
+    needs_delivery_selection = fields.Boolean(
+        compute='_compute_returnable_picking_selection',
+    )
+    needs_invoice_selection = fields.Boolean(
+        compute='_compute_needs_invoice_selection',
+    )
+    order_product_ids = fields.Many2many(
+        'product.product',
+        compute='_compute_order_product_ids',
+        compute_sudo=True,
+    )
+    can_register_refund_payment = fields.Boolean(
+        string='Có thể đăng ký thanh toán hoàn',
+        compute='_compute_can_register_refund_payment',
+        help='Credit note đã ghi sổ và còn số dư chưa được thanh toán.',
+    )
+    refund_confirmed = fields.Boolean(
+        string='Đã hoàn tiền',
+        readonly=True,
+        copy=False,
+        tracking=True,
+        help='Kế toán xác nhận sau khi tiền thực tế đã được hoàn cho khách.',
+    )
+    refund_confirmed_by = fields.Many2one(
+        'res.users',
+        string='Người xác nhận hoàn tiền',
+        readonly=True,
+        copy=False,
+    )
+    refund_confirmed_at = fields.Datetime(
+        string='Thời điểm xác nhận hoàn tiền',
+        readonly=True,
+        copy=False,
     )
 
     _REQUEST_FIELDS = {
@@ -116,7 +168,11 @@ class SpaReturnRequest(models.Model):
         'return_picking_id',
         'credit_note_id',
         'name',
+        'refund_confirmed',
+        'refund_confirmed_by',
+        'refund_confirmed_at',
     }
+
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
@@ -128,6 +184,9 @@ class SpaReturnRequest(models.Model):
                     'approver_id',
                     'return_picking_id',
                     'credit_note_id',
+                    'refund_confirmed',
+                    'refund_confirmed_by',
+                    'refund_confirmed_at',
                 )
             ) or vals.get('name', '/') not in ('/', False):
                 raise UserError(
@@ -175,6 +234,32 @@ class SpaReturnRequest(models.Model):
                     )
         return super().write(vals)
 
+    @api.model
+    def default_get(self, fields_list):
+        values = super().default_get(fields_list)
+        if 'line_ids' not in fields_list or values.get('line_ids'):
+            return values
+
+        order_id = values.get('order_id')
+        if not order_id:
+            return values
+        order = self.env['sale.order'].browse(order_id).exists()
+        if not order:
+            return values
+
+        pickings = order._get_spa_returnable_pickings()
+        delivery_id = values.get('delivery_picking_id')
+        delivery = pickings.filtered(lambda picking: picking.id == delivery_id)
+        if not delivery and len(pickings) == 1:
+            delivery = pickings
+        if not delivery:
+            return values
+
+        if 'delivery_picking_id' in fields_list:
+            values['delivery_picking_id'] = delivery.id
+        values['line_ids'] = self._prepare_return_line_commands(delivery)
+        return values
+
     @api.constrains('order_id', 'invoice_id')
     def _check_invoice(self):
         for request in self.filtered('invoice_id'):
@@ -191,40 +276,124 @@ class SpaReturnRequest(models.Model):
     def _check_delivery_picking(self):
         for request in self:
             picking = request.delivery_picking_id
+            if not picking:
+                if request.state != 'draft' or any(
+                    line.move_id for line in request.line_ids
+                ):
+                    raise ValidationError(
+                        _('Chỉ yêu cầu nháp mới được lưu khi chưa có phiếu xuất kho.')
+                    )
+                continue
             if (
-                picking.sale_id != request.order_id
+                (
+                    picking.sale_id != request.order_id
+                    and not request.order_id._is_spa_invoice_stock_picking(
+                        picking
+                    )
+                )
                 or picking.state != 'done'
                 or picking.picking_type_code != 'outgoing'
             ):
                 raise ValidationError(
-                    _('Phiếu giao hàng phải thuộc đơn bán hàng và đã hoàn tất.')
+                    _('Phiếu xuất kho phải thuộc đơn bán hàng và đã hoàn tất.')
                 )
+            ordered_products = request.order_id.order_line.mapped(
+                'product_id'
+            )
+            if any(
+                line.product_choice_id not in ordered_products
+                or (
+                    line.move_id
+                    and line.move_id.picking_id != picking
+                )
+                for line in request.line_ids
+            ):
+                raise ValidationError(
+                    _('Sản phẩm trả phải thuộc đơn hàng và phiếu giao đã chọn.')
+                )
+
+    @api.onchange('order_id')
+    def _onchange_order_id(self):
+        for request in self:
+            request.line_ids = [(5, 0, 0)]
+            pickings = (
+                request.order_id._get_spa_returnable_pickings()
+                if request.order_id
+                else self.env['stock.picking']
+            )
+            request.delivery_picking_id = (
+                pickings[:1] if len(pickings) == 1 else False
+            )
+            request._onchange_delivery_picking_id()
 
     @api.onchange('delivery_picking_id')
     def _onchange_delivery_picking_id(self):
         for request in self:
             if not request.delivery_picking_id:
-                request.line_ids = [(5, 0, 0)]
+                for line in request.line_ids:
+                    line.move_id = False
                 continue
-            lines = []
-            for move in request.delivery_picking_id.move_ids.filtered(
-                lambda item: (
-                    item.state == 'done'
-                    and not item.scrapped
-                    and item.product_id.is_storable
-                )
-            ):
-                available = self._available_return_quantity(move)
-                if float_compare(
-                    available,
-                    0.0,
-                    precision_rounding=move.product_id.uom_id.rounding,
-                ) > 0:
-                    lines.append((0, 0, {
-                        'move_id': move.id,
-                        'quantity': available,
-                    }))
-            request.line_ids = [(5, 0, 0), *lines]
+            if request.line_ids:
+                for line in request.line_ids:
+                    move = line._find_move_for_product(
+                        request,
+                        line.product_choice_id,
+                        line,
+                    )
+                    line.move_id = move
+                    if move and line.quantity <= 0:
+                        line.quantity = request._available_return_quantity(
+                            move
+                        )
+                continue
+            request.line_ids = [
+                (5, 0, 0),
+                *request._prepare_return_line_commands(
+                    request.delivery_picking_id
+                ),
+            ]
+
+    def _prepare_return_line_commands(self, picking):
+        lines = []
+        order_products = self.order_id.order_line.mapped('product_id')
+        for move in picking.move_ids.filtered(
+            lambda item: (
+                item.state == 'done'
+                and not item.scrapped
+                and item.product_id.is_storable
+                and item.product_id in order_products
+            )
+        ):
+            available = self._available_return_quantity(move)
+            if float_compare(
+                available,
+                0.0,
+                precision_rounding=move.product_id.uom_id.rounding,
+            ) > 0:
+                lines.append((0, 0, {
+                    'move_id': move.id,
+                    'product_choice_id': move.product_id.id,
+                    'quantity': available,
+                }))
+        return lines
+
+    @api.depends(
+        'line_ids.product_choice_id.display_name',
+        'line_ids.quantity',
+        'line_ids.product_choice_id.uom_id',
+    )
+    def _compute_return_line_summaries(self):
+        for request in self:
+            request.return_product_summary = ', '.join(
+                    request.line_ids.mapped('product_choice_id.display_name')
+            )
+            request.return_quantity_summary = ', '.join(
+                    '%s %s' % (
+                        line.quantity,
+                        line.product_choice_id.uom_id.display_name,
+                    )
+                    for line in request.line_ids
+            )
 
     def _available_return_quantity(self, move):
         product_uom = move.product_id.uom_id
@@ -257,6 +426,40 @@ class SpaReturnRequest(models.Model):
             or self.env.user.has_group('hr.group_hr_manager')
         )
 
+    def _ensure_delivery_picking(self):
+        self.ensure_one()
+        pickings = (
+            self.order_id._get_spa_returnable_pickings()
+            if self.order_id
+            else self.env['stock.picking']
+        )
+        if not pickings:
+            return False
+        if self.delivery_picking_id not in pickings:
+            if len(pickings) != 1:
+                return False
+            self.delivery_picking_id = pickings
+        for line in self.line_ids:
+            if not line.move_id or line.move_id.picking_id != self.delivery_picking_id:
+                line.move_id = line._find_move_for_product(
+                    self,
+                    line.product_choice_id,
+                    line,
+                )
+        return bool(self.delivery_picking_id)
+
+    @api.depends(
+        'return_picking_id',
+        'return_picking_id.state',
+    )
+    def _compute_return_state(self):
+        for request in self:
+            request.return_state = (
+                request.return_picking_id.state
+                if request.return_picking_id
+                else 'not_created'
+            )
+
     @api.depends(
         'return_picking_id.state',
         'return_picking_id.backorder_ids.state',
@@ -268,6 +471,103 @@ class SpaReturnRequest(models.Model):
     def _compute_return_received(self):
         for request in self:
             request.return_received = request._is_return_fully_received()
+
+    @api.depends(
+        'credit_note_id.state',
+        'credit_note_id.move_type',
+        'credit_note_id.amount_residual',
+        'credit_note_id.currency_id',
+    )
+    def _compute_can_register_refund_payment(self):
+        for request in self:
+            credit_note = request.credit_note_id
+            request.can_register_refund_payment = bool(
+                credit_note
+                and credit_note.move_type == 'out_refund'
+                and credit_note.state == 'posted'
+                and not credit_note.currency_id.is_zero(
+                    credit_note.amount_residual
+                )
+            )
+
+    @api.depends(
+        'order_id',
+        'order_id.invoice_ids.state',
+        'order_id.invoice_ids.invoice_line_ids.product_id',
+        'order_id.invoice_ids.invoice_line_ids.sale_line_ids',
+        'order_id.picking_ids.state',
+        'order_id.picking_ids.picking_type_code',
+        'order_id.picking_ids.move_ids.state',
+        'order_id.picking_ids.move_ids.quantity',
+        'order_id.picking_ids.move_ids.returned_move_ids.state',
+        'order_id.picking_ids.move_ids.returned_move_ids.quantity',
+        'order_id.spa_return_request_ids.state',
+        'order_id.spa_return_request_ids.line_ids.quantity',
+        'order_id.spa_return_request_ids.return_picking_id.state',
+    )
+    def _compute_returnable_picking_selection(self):
+        for request in self:
+            pickings = (
+                request.order_id._get_spa_returnable_pickings()
+                if request.order_id
+                else self.env['stock.picking']
+            )
+            request.needs_delivery_selection = bool(
+                request.order_id
+                and (
+                    not request.delivery_picking_id
+                    or len(pickings) != 1
+                )
+            )
+
+    @api.depends(
+        'order_id',
+        'order_id.invoice_ids.state',
+        'order_id.invoice_ids.invoice_line_ids.product_id',
+        'order_id.invoice_ids.invoice_line_ids.sale_line_ids',
+        'order_id.picking_ids.state',
+    )
+    def _compute_returnable_picking_ids(self):
+        for request in self:
+            request.returnable_picking_ids = (
+                request.order_id._get_spa_returnable_pickings()
+                if request.order_id
+                else self.env['stock.picking']
+            )
+
+    @api.depends(
+        'order_id',
+        'order_id.order_line.product_id',
+    )
+    def _compute_order_product_ids(self):
+        for request in self:
+            request.order_product_ids = request.order_id.order_line.mapped(
+                'product_id'
+            ).filtered('is_storable')
+
+    @api.depends(
+        'order_id.invoice_ids.state',
+        'order_id.invoice_ids.move_type',
+        'invoice_id',
+        'credit_note_id',
+        'state',
+        'return_received',
+    )
+    def _compute_needs_invoice_selection(self):
+        for request in self:
+            invoices = request.order_id.invoice_ids.filtered(
+                lambda move: (
+                    move.move_type == 'out_invoice'
+                    and move.state == 'posted'
+                )
+            )
+            request.needs_invoice_selection = bool(
+                request.state == 'approved'
+                and request.return_received
+                and not request.credit_note_id
+                and not request.invoice_id
+                and len(invoices) > 1
+            )
 
     def _is_return_fully_received(self):
         self.ensure_one()
@@ -317,8 +617,23 @@ class SpaReturnRequest(models.Model):
                 )
             if not request.reason or not request.reason.strip():
                 raise UserError(_('Vui lòng nhập lý do trả hàng.'))
+            request._ensure_delivery_picking()
             if not request.line_ids:
                 raise UserError(_('Chọn ít nhất một sản phẩm và số lượng cần trả.'))
+            if not request.delivery_picking_id:
+                raise UserError(
+                    _(
+                        'Đơn hàng chưa có phiếu xuất kho hoàn tất. '
+                        'Chỉ có thể gửi yêu cầu trả sau khi sản phẩm đã được xuất kho.'
+                    )
+                )
+            if any(not line.move_id for line in request.line_ids):
+                raise UserError(
+                    _(
+                        'Sản phẩm đã chọn chưa có trong phiếu xuất kho '
+                        'hoặc không còn số lượng có thể trả.'
+                    )
+                )
             request._check_requested_quantities()
             request._transition_state('submitted')
 
@@ -509,6 +824,53 @@ class SpaReturnRequest(models.Model):
         )
         return action
 
+    def action_register_refund_payment(self):
+        self.ensure_one()
+        if not self.env.user.has_group('account.group_account_invoice'):
+            raise AccessError(
+                _('Bạn cần quyền Kế toán hóa đơn để đăng ký thanh toán hoàn.')
+            )
+        if (
+            self.state != 'approved'
+            or not self.return_received
+            or not self.can_register_refund_payment
+        ):
+            raise UserError(
+                _(
+                    'Chỉ có thể đăng ký thanh toán cho credit note đã ghi sổ '
+                    'còn số dư cần hoàn.'
+                )
+            )
+        return self.credit_note_id.action_register_payment()
+
+    def action_confirm_refund_paid(self):
+        self.ensure_one()
+        if not self.env.user.has_group('account.group_account_invoice'):
+            raise AccessError(
+                _('Bạn cần quyền Kế toán hóa đơn để xác nhận đã hoàn tiền.')
+            )
+        credit_note = self.credit_note_id
+        if (
+            self.state != 'approved'
+            or not self.return_received
+            or not credit_note
+            or credit_note.move_type != 'out_refund'
+            or credit_note.state != 'posted'
+        ):
+            raise UserError(
+                _(
+                    'Chỉ xác nhận hoàn tiền sau khi kho đã nhận hàng và '
+                    'credit note đã ghi sổ.'
+                )
+            )
+        if self.refund_confirmed:
+            raise UserError(_('Yêu cầu này đã được xác nhận hoàn tiền.'))
+        return super(SpaReturnRequest, self).write({
+            'refund_confirmed': True,
+            'refund_confirmed_by': self.env.user.id,
+            'refund_confirmed_at': fields.Datetime.now(),
+        })
+
 
 class SpaReturnRequestLine(models.Model):
     _name = 'spa.return.request.line'
@@ -530,13 +892,17 @@ class SpaReturnRequestLine(models.Model):
     move_id = fields.Many2one(
         'stock.move',
         string='Dòng giao hàng',
-        required=True,
         ondelete='restrict',
     )
     product_id = fields.Many2one(
         related='move_id.product_id',
         string='Sản phẩm',
         readonly=True,
+    )
+    product_choice_id = fields.Many2one(
+        'product.product',
+        string='Sản phẩm trả',
+        required=True,
     )
     quantity = fields.Float(
         string='Số lượng trả',
@@ -548,6 +914,70 @@ class SpaReturnRequestLine(models.Model):
         string='Đơn vị',
         readonly=True,
     )
+
+    def _find_move_for_product(self, request, product, line=None):
+        if not request or not request.order_id:
+            return self.env['stock.move']
+        ordered_products = request.order_id.order_line.mapped('product_id')
+        if product not in ordered_products:
+            raise ValidationError(
+                _('Sản phẩm trả phải thuộc đơn bán hàng đã chọn.')
+            )
+        if not request.delivery_picking_id:
+            return self.env['stock.move']
+
+        used_moves = request.line_ids.filtered(
+            lambda existing: existing != line
+        ).mapped('move_id')
+        moves = request.delivery_picking_id.move_ids.filtered(
+            lambda move: (
+                move.product_id == product
+                and move.state == 'done'
+                and not move.scrapped
+                and move.product_id.is_storable
+                and move not in used_moves
+            )
+        ).filtered(
+            lambda move: float_compare(
+                request._available_return_quantity(move),
+                0.0,
+                precision_rounding=move.product_id.uom_id.rounding,
+            ) > 0
+        )
+        if not moves:
+            return moves
+        return moves.sorted(
+            key=lambda move: (
+                -request._available_return_quantity(move),
+                move.id,
+            )
+        )[:1]
+
+    @api.onchange('product_choice_id')
+    def _onchange_product_choice_id(self):
+        for line in self:
+            if not line.product_choice_id:
+                line.move_id = False
+                continue
+            line.move_id = line._find_move_for_product(
+                line.request_id,
+                line.product_choice_id,
+                line,
+            )
+            if line.move_id:
+                line.quantity = line.request_id._available_return_quantity(
+                    line.move_id
+                )
+
+    @api.onchange('move_id')
+    def _onchange_move_id(self):
+        for line in self:
+            if line.move_id:
+                line.product_choice_id = line.move_id.product_id
+            if line.move_id and line.request_id:
+                line.quantity = line.request_id._available_return_quantity(
+                    line.move_id
+                )
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -571,6 +1001,29 @@ class SpaReturnRequestLine(models.Model):
             raise AccessError(
                 _('Chỉ người yêu cầu hoặc quản lý Spa mới được thêm sản phẩm trả.')
             )
+        for vals in vals_list:
+            request = self.env['spa.return.request'].browse(
+                vals.get('request_id')
+            )
+            if vals.get('move_id'):
+                move = self.env['stock.move'].browse(vals['move_id'])
+                if (
+                    vals.get('product_choice_id')
+                    and vals['product_choice_id'] != move.product_id.id
+                ):
+                    raise ValidationError(
+                        _('Sản phẩm trả không khớp dòng giao hàng.')
+                    )
+                vals['product_choice_id'] = move.product_id.id
+            elif vals.get('product_choice_id') and request.delivery_picking_id:
+                move = self._find_move_for_product(
+                    request,
+                    self.env['product.product'].browse(
+                        vals['product_choice_id']
+                    ),
+                )
+                if move:
+                    vals['move_id'] = move.id
         return super().create(vals_list)
 
     def write(self, vals):
@@ -586,6 +1039,26 @@ class SpaReturnRequestLine(models.Model):
         ):
             raise AccessError(
                 _('Chỉ người yêu cầu hoặc quản lý Spa mới được sửa sản phẩm trả.')
+            )
+        if 'product_choice_id' in vals:
+            for line in self:
+                if not vals['product_choice_id']:
+                    raise ValidationError(_('Vui lòng chọn sản phẩm trả.'))
+                line_vals = dict(vals)
+                move = self._find_move_for_product(
+                    line.request_id,
+                    self.env['product.product'].browse(
+                        vals['product_choice_id']
+                    ),
+                    line,
+                )
+                line_vals['move_id'] = move.id if move else False
+                super(SpaReturnRequestLine, line).write(line_vals)
+            return True
+        if vals.get('move_id'):
+            vals = dict(vals)
+            vals['product_choice_id'] = (
+                self.env['stock.move'].browse(vals['move_id']).product_id.id
             )
         return super().write(vals)
 
@@ -605,21 +1078,43 @@ class SpaReturnRequestLine(models.Model):
             )
         return super().unlink()
 
-    @api.constrains('request_id', 'move_id', 'quantity')
+    @api.constrains(
+        'request_id',
+        'move_id',
+        'product_choice_id',
+        'quantity',
+    )
     def _check_line(self):
         for line in self:
             if (
+                line.product_choice_id
+                not in line.request_id.order_id.order_line.mapped('product_id')
+                or not line.product_choice_id.is_storable
+            ):
+                raise ValidationError(
+                    _('Sản phẩm trả phải là hàng lưu kho thuộc đơn hàng.')
+                )
+            if not line.move_id:
+                if line.request_id.state != 'draft':
+                    raise ValidationError(
+                        _('Cần chọn phiếu xuất kho trước khi gửi yêu cầu.')
+                    )
+            elif (
                 line.move_id.picking_id != line.request_id.delivery_picking_id
                 or line.move_id.state != 'done'
                 or not line.move_id.product_id.is_storable
+                or line.move_id.product_id != line.product_choice_id
             ):
                 raise ValidationError(
-                    _('Chỉ được trả sản phẩm đã giao trong phiếu giao hàng đã chọn.')
+                    _(
+                        'Sản phẩm trả phải có trong phiếu xuất kho '
+                        'đã hoàn tất đã chọn.'
+                    )
                 )
             if float_compare(
                 line.quantity,
                 0.0,
-                precision_rounding=line.move_id.product_id.uom_id.rounding,
+                precision_rounding=line.product_choice_id.uom_id.rounding,
             ) <= 0:
                 raise ValidationError(_('Số lượng trả phải lớn hơn 0.'))
 
@@ -632,10 +1127,15 @@ class StockReturnPicking(models.TransientModel):
             picking = wizard.picking_id
             if (
                 picking.picking_type_code == 'outgoing'
-                and picking.sale_id
+                and (
+                    picking.sale_id
+                    or self.env.context.get('spa_return_request_id')
+                )
             ):
                 request_id = self.env.context.get('spa_return_request_id')
-                request = self.env['spa.return.request'].browse(request_id)
+                request = self.env['spa.return.request'].browse(
+                    request_id
+                ).exists()
                 if (
                     not request
                     or request.state != 'approved'
@@ -737,6 +1237,9 @@ class AccountMoveReversal(models.TransientModel):
     def refund_moves(self):
         for wizard in self.filtered('spa_return_request_id'):
             request = wizard.spa_return_request_id
+            if request and request.invoice_id:
+                if wizard.move_ids != request.invoice_id:
+                    wizard.move_ids = [(6, 0, request.invoice_id.ids)]
             if (
                 not request
                 or request.state != 'approved'
@@ -759,20 +1262,25 @@ class AccountMoveReversal(models.TransientModel):
             request = wizard.spa_return_request_id
             request_sudo = request.sudo()
             remaining_quantities = {}
+            returned_quantities_by_product = {}
             return_pickings = request_sudo._get_return_pickings()
             for move in return_pickings.move_ids.filtered(
                 lambda item: item.state == 'done'
             ):
                 sale_line = move.origin_returned_move_id.sale_line_id
-                if not sale_line:
-                    continue
                 returned_quantity = move.product_uom._compute_quantity(
                     move.quantity, move.product_id.uom_id
                 )
-                remaining_quantities[sale_line.id] = (
-                    remaining_quantities.get(sale_line.id, 0.0)
+                product_id = move.product_id.id
+                returned_quantities_by_product[product_id] = (
+                    returned_quantities_by_product.get(product_id, 0.0)
                     + returned_quantity
                 )
+                if sale_line:
+                    remaining_quantities[sale_line.id] = (
+                        remaining_quantities.get(sale_line.id, 0.0)
+                        + returned_quantity
+                    )
             adjusted_lines = credit_notes.invoice_line_ids.filtered(
                 lambda line: line.display_type == 'product' and line.product_id
             )
@@ -782,6 +1290,15 @@ class AccountMoveReversal(models.TransientModel):
                     for sale_line in line.sale_line_ids
                     if sale_line.order_id == request_sudo.order_id
                 )
+                if float_compare(
+                    available_quantity,
+                    0.0,
+                    precision_rounding=line.product_id.uom_id.rounding,
+                ) <= 0:
+                    available_quantity = returned_quantities_by_product.get(
+                        line.product_id.id,
+                        0.0,
+                    )
                 invoice_quantity = line.product_uom_id._compute_quantity(
                     line.quantity, line.product_id.uom_id
                 )

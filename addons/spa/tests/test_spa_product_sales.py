@@ -30,6 +30,20 @@ class TestSpaProductSales(TransactionCase):
             self.env['product.template'].search(safe_eval(action.domain)),
         )
 
+    def test_sales_catalog_only_contains_goods(self):
+        domain = self.env['sale.order']._get_product_catalog_domain()
+        products = self.env['product.product'].search(domain)
+
+        retail_product = self.env.ref(
+            'spa.product_spa_gentle_cleanser'
+        ).product_variant_id
+        service = self.env.ref(
+            'spa.product_service_massage_body_relax'
+        ).product_variant_id
+
+        self.assertIn(retail_product, products)
+        self.assertNotIn(service, products)
+
     def test_spa_starter_retail_catalog_is_storable_and_starts_without_stock(self):
         products = self.env['product.template'].search([
             ('id', 'in', [

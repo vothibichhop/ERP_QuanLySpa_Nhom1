@@ -19,12 +19,24 @@ class TestSpaLoyaltyTierDiscount(TransactionCase):
 
     def test_customer_tier_thresholds(self):
         get_customer_type = self.partner._customer_type_for_loyalty_points
-        self.assertEqual(get_customer_type(499), 'new')
-        self.assertEqual(get_customer_type(500), 'silver')
-        self.assertEqual(get_customer_type(1499), 'silver')
+        self.assertEqual(get_customer_type(99), 'new')
+        self.assertEqual(get_customer_type(100), 'silver')
+        self.assertEqual(get_customer_type(499), 'silver')
+        self.assertEqual(get_customer_type(500), 'gold')
         self.assertEqual(get_customer_type(1500), 'gold')
-        self.assertEqual(get_customer_type(1999), 'gold')
-        self.assertEqual(get_customer_type(2000), 'diamond')
+        self.assertEqual(get_customer_type(1501), 'diamond')
+
+    def test_writing_loyalty_points_updates_tier_automatically(self):
+        for points, customer_type in (
+            (99, 'new'),
+            (100, 'silver'),
+            (499, 'silver'),
+            (500, 'gold'),
+            (1500, 'gold'),
+            (1501, 'diamond'),
+        ):
+            self.partner.write({'loyalty_point': points})
+            self.assertEqual(self.partner.customer_type, customer_type)
 
     def test_new_customer_uses_base_pricelist_instead_of_tier_pricelist(self):
         company = self.env.company
@@ -110,9 +122,9 @@ class TestSpaLoyaltyTierDiscount(TransactionCase):
 
     def test_order_line_uses_matching_customer_tier_discount(self):
         for points, customer_type, expected_discount in (
-            (500, 'silver', 5.0),
-            (1500, 'gold', 10.0),
-            (2000, 'diamond', 20.0),
+            (100, 'silver', 5.0),
+            (500, 'gold', 10.0),
+            (1501, 'diamond', 20.0),
         ):
             self.partner.write({
                 'loyalty_point': points,
@@ -134,7 +146,7 @@ class TestSpaLoyaltyTierDiscount(TransactionCase):
 
     def test_order_line_requires_rank_and_minimum_points(self):
         self.partner.write({
-            'loyalty_point': 1499,
+            'loyalty_point': 499,
             'customer_type': 'gold',
         })
         order = self.env['sale.order'].create({
@@ -215,7 +227,7 @@ class TestSpaLoyaltyTierDiscount(TransactionCase):
         })
 
         self.partner.write({
-            'loyalty_point': 2000,
+            'loyalty_point': 1501,
             'customer_type': 'diamond',
         })
 
