@@ -123,6 +123,18 @@ class ProductTemplate(models.Model):
     spa_combo_category = fields.Selection(
         SPA_COMBO_CATEGORIES, string='Danh mục combo', copy=False
     )
+    spa_treatment_package_id = fields.Many2one(
+        'spa.treatment.package',
+        string='Gói liệu trình',
+        readonly=True,
+        copy=False,
+        ondelete='restrict',
+        index=True,
+    )
+    spa_treatment_package_service_summary = fields.Text(
+        string='Dịch vụ trong gói',
+        compute='_compute_spa_treatment_package_service_summary',
+    )
     spa_category = fields.Selection([
         ('massage', 'Massage và chăm sóc cơ thể'),
         ('hair', 'Gội đầu dưỡng sinh'),
@@ -133,6 +145,27 @@ class ProductTemplate(models.Model):
     ], string='Category')
     spa_duration_minutes = fields.Integer(string='Completion Time (minutes)')
     description = fields.Text(string='Description')
+    spa_employee_ids = fields.Many2many(
+        'hr.employee.public',
+        'spa_employee_service_rel',
+        'product_id',
+        'employee_id',
+        string='Nhân viên có thể thực hiện',
+        domain=[('active', '=', True)],
+    )
+
+    @api.depends(
+        'spa_treatment_package_id.line_ids.product_id.name',
+        'spa_treatment_package_id.line_ids.session_count',
+    )
+    def _compute_spa_treatment_package_service_summary(self):
+        for product in self:
+            lines = product.spa_treatment_package_id.line_ids
+            product.spa_treatment_package_service_summary = '\n'.join(
+                '- %s: %s buổi'
+                % (line.product_id.display_name, line.session_count)
+                for line in lines
+            )
 
     @api.model_create_multi
     def create(self, vals_list):

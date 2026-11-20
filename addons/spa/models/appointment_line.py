@@ -297,7 +297,14 @@ class SpaAppointmentLine(models.Model):
         for line in self:
             if line.product_id.type == 'combo':
                 line.combo_choice_ids = [
-                    fields.Command.create({'combo_id': combo.id})
+                    fields.Command.create({
+                        'combo_id': combo.id,
+                        'combo_item_id': (
+                            combo.combo_item_ids[:1].id
+                            if len(combo.combo_item_ids) == 1
+                            else False
+                        ),
+                    })
                     for combo in line.product_id.combo_ids
                 ]
                 line.duration_minutes = line.product_id.spa_duration_minutes
@@ -416,14 +423,27 @@ class SpaAppointmentComboChoice(models.Model):
     combo_item_id = fields.Many2one(
         'product.combo.item',
         string='Dịch vụ thành phần',
-        required=True,
         domain="[('combo_id', '=', combo_id)]",
         ondelete='restrict',
     )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('combo_id') and not vals.get('combo_item_id'):
+                combo = self.env['product.combo'].browse(vals['combo_id'])
+                if len(combo.combo_item_ids) == 1:
+                    vals['combo_item_id'] = combo.combo_item_ids.id
+        return super().create(vals_list)
+
     @api.constrains('appointment_line_id', 'combo_id', 'combo_item_id')
     def _check_combo_item(self):
         for choice in self:
+            if not choice.combo_item_id:
+                raise ValidationError(
+                    'Vui lòng chọn dịch vụ cho mục "%s".'
+                    % choice.combo_id.name
+                )
             if choice.combo_id not in choice.appointment_line_id.product_id.combo_ids:
                 raise ValidationError('Mục lựa chọn không thuộc combo đã chọn.')
             if choice.combo_item_id.combo_id != choice.combo_id:

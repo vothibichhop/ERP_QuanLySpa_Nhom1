@@ -1,0 +1,165 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="view_spa_sales_commission_list" model="ir.ui.view">
+        <field name="name">spa.sales.commission.list</field>
+        <field name="model">spa.sales.commission</field>
+        <field name="arch" type="xml">
+            <list string="Hoa hồng bán hàng"
+                  decoration-muted="state == 'cancelled'">
+                <field name="sale_order_id"/>
+                <field name="sale_order_line_id"/>
+                <field name="invoice_id"/>
+                <field name="invoice_line_id"/>
+                <field name="salesperson_id"/>
+                <field name="employee_id"/>
+                <field name="base_amount" sum="Tổng doanh thu"/>
+                <field name="rate"/>
+                <field name="commission_amount" sum="Tổng hoa hồng"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="paid_date" optional="hide"/>
+                <field name="state" widget="badge"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_spa_sales_commission_form" model="ir.ui.view">
+        <field name="name">spa.sales.commission.form</field>
+        <field name="model">spa.sales.commission</field>
+        <field name="arch" type="xml">
+            <form string="Hoa hồng bán hàng">
+                <header>
+                    <button name="action_approve"
+                            string="Duyệt"
+                            type="object"
+                            class="btn-primary"
+                            groups="spa.group_customer_management_manager"
+                            invisible="state != 'draft'"/>
+                    <button name="action_mark_paid"
+                            string="Đánh dấu đã thanh toán"
+                            type="object"
+                            class="btn-primary"
+                            groups="spa.group_customer_management_manager"
+                            invisible="state != 'approved'"/>
+                    <button name="action_cancel"
+                            string="Hủy"
+                            type="object"
+                            class="btn-secondary"
+                            groups="spa.group_customer_management_manager"
+                            invisible="state not in ['draft', 'approved']"/>
+                    <field name="state"
+                           widget="statusbar"
+                           statusbar_visible="draft,approved,paid,cancelled"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="sale_order_id"/>
+                            <field name="sale_order_line_id"/>
+                            <field name="invoice_id"/>
+                            <field name="invoice_line_id"/>
+                            <field name="invoice_ids" widget="many2many_tags"/>
+                            <field name="salesperson_id"/>
+                            <field name="employee_id"/>
+                        </group>
+                        <group>
+                            <field name="base_amount"/>
+                            <field name="rate"/>
+                            <field name="commission_amount"/>
+                            <field name="paid_date"
+                                   invisible="state != 'paid'"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_spa_sales_commission_search" model="ir.ui.view">
+        <field name="name">spa.sales.commission.search</field>
+        <field name="model">spa.sales.commission</field>
+        <field name="arch" type="xml">
+            <search string="Tìm hoa hồng bán hàng">
+                <field name="sale_order_id"/>
+                <field name="employee_id"/>
+                <filter name="filter_pending"
+                        string="Chờ duyệt"
+                        domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_approved"
+                        string="Đã duyệt"
+                        domain="[('state', '=', 'approved')]"/>
+                <filter name="filter_paid"
+                        string="Đã thanh toán"
+                        domain="[('state', '=', 'paid')]"/>
+                <filter name="filter_cancelled"
+                        string="Đã hủy"
+                        domain="[('state', '=', 'cancelled')]"/>
+                <group expand="0" string="Nhóm theo">
+                    <filter name="group_salesperson"
+                            string="Nhân viên"
+                            context="{'group_by': 'employee_id'}"/>
+                    <filter name="group_state"
+                            string="Trạng thái"
+                            context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_spa_sales_commission" model="ir.actions.act_window">
+        <field name="name">Hoa hồng bán hàng</field>
+        <field name="res_model">spa.sales.commission</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id"
+               ref="view_spa_sales_commission_search"/>
+    </record>
+
+    <menuitem id="menu_spa_sales_commission"
+              name="Hoa hồng bán hàng"
+              parent="menu_customer_management_root"
+              action="action_spa_sales_commission"
+              sequence="17"
+              groups="spa.group_customer_management_manager"/>
+
+    <data noupdate="1">
+        <record id="sales_commission_rule_default"
+                model="spa.sales.commission.rule">
+            <field name="name">Hoa hồng bán sản phẩm</field>
+            <field name="rate">3.0</field>
+        </record>
+    </data>
+
+    <record id="view_spa_sales_commission_rule_form" model="ir.ui.view">
+        <field name="name">spa.sales.commission.rule.form</field>
+        <field name="model">spa.sales.commission.rule</field>
+        <field name="arch" type="xml">
+            <form string="Thiết lập hoa hồng">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="rate"/>
+                    </group>
+                    <div class="text-muted">
+                        Tỷ lệ mới áp dụng cho đơn hàng được xác nhận sau khi
+                        lưu thiết lập; hoa hồng đã ghi nhận không thay đổi.
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_spa_sales_commission_rule"
+            model="ir.actions.act_window">
+        <field name="name">Thiết lập hoa hồng</field>
+        <field name="res_model">spa.sales.commission.rule</field>
+        <field name="view_mode">form</field>
+        <field name="res_id" ref="sales_commission_rule_default"/>
+        <field name="target">current</field>
+    </record>
+
+    <menuitem id="menu_spa_sales_commission_rule"
+              name="Thiết lập hoa hồng"
+              parent="menu_customer_management_root"
+              action="action_spa_sales_commission_rule"
+              sequence="18"
+              groups="spa.group_customer_management_manager"/>
+</odoo>

@@ -164,6 +164,7 @@ class SpaAppointment(models.Model):
         for appointment in self:
             if (
                 not appointment.can_assign_employees
+                and appointment.status not in ('confirmed', 'checked_in')
                 and (
                     appointment.employee_id
                     or appointment.appointment_line_ids.filtered('employee_id')

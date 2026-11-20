@@ -123,6 +123,19 @@ class HrEmployee(models.Model):
         action['name'] = 'Hoa hồng - %s' % self.name
         return action
 
+    def action_spa_create_leave(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Thêm nghỉ phép',
+            'res_model': 'spa.leave.request',
+            'view_mode': 'form',
+            'target': 'current',
+            'context': {
+                'default_employee_id': self.id,
+            },
+        }
+
     @api.model_create_multi
     def create(self, vals_list):
         sequence = self.env['ir.sequence']

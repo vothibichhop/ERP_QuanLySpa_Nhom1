@@ -108,6 +108,7 @@
                                             <list editable="bottom" create="0" delete="0">
                                                 <field name="combo_id" readonly="1" force_save="1"/>
                                                 <field name="combo_item_id"
+                                                       required="1"
                                                        domain="[('combo_id', '=', combo_id)]"/>
                                             </list>
                                         </field>

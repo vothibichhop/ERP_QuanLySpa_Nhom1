@@ -88,13 +88,6 @@
         <field name="search_view_id" ref="view_spa_leave_request_search"/>
     </record>
 
-    <menuitem id="menu_spa_leave_request"
-              name="Nghỉ phép"
-              parent="menu_customer_management_root"
-              action="action_spa_leave_request"
-              sequence="15"
-              groups="spa.group_customer_management_user"/>
-
     <menuitem id="menu_spa_leave_request_employees"
               name="Nghỉ phép"
               parent="hr.menu_hr_root"
@@ -102,10 +95,4 @@
               sequence="30"
               groups="spa.group_customer_management_user"/>
 
-    <record id="menu_spa_leave_request" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
-    <record id="menu_spa_leave_request_employees" model="ir.ui.menu">
-        <field name="active" eval="False"/>
-    </record>
 </odoo>
