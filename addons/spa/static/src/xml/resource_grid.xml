@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="spa.ResourceGrid">
+        <div class="o_spa_resource_grid">
+            <t t-foreach="rooms" t-as="room" t-key="room.id">
+                <section class="o_spa_resource_room">
+                    <h5 class="o_spa_resource_room_title" t-esc="room.name"/>
+                    <div class="o_spa_resource_beds">
+                        <t t-foreach="room.beds" t-as="bed" t-key="bed.id">
+                            <button type="button"
+                                    class="o_spa_resource_bed"
+                                    t-att-class="{
+                                        'o_spa_resource_bed_available': bed.available,
+                                        'o_spa_resource_bed_occupied': !bed.available,
+                                        'o_spa_resource_bed_selected': selectedRoomId === room.id &amp;&amp; selectedBedId === bed.id,
+                                    }"
+                                    t-att-disabled="props.readonly || !bed.available"
+                                    t-on-click="() => this.selectBed(room, bed)"
+                                    t-esc="bed.name"/>
+                        </t>
+                        <span t-if="!room.beds.length" class="text-muted">
+                            Chưa có giường
+                        </span>
+                    </div>
+                </section>
+            </t>
+            <span t-if="!rooms.length" class="text-muted">
+                Không có phòng đang hoạt động.
+            </span>
+        </div>
+    </t>
+</templates>

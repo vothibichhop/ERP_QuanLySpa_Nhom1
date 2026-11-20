@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <delete id="menu_spa_service" model="ir.ui.menu"/>
+    <delete id="action_spa_service" model="ir.actions.act_window"/>
+    <delete id="view_spa_service_search" model="ir.ui.view"/>
+</odoo>

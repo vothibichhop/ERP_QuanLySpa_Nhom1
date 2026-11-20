@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <record id="spa_room_h1" model="spa.room">
+        <field name="name">H1</field>
+    </record>
+    <record id="spa_room_h2" model="spa.room">
+        <field name="name">H2</field>
+    </record>
+    <record id="spa_room_h3" model="spa.room">
+        <field name="name">H3</field>
+    </record>
+</odoo>

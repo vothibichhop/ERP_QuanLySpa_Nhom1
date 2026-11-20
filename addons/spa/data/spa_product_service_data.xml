@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="product_service_massage_body_relax" model="product.template">
+            <field name="name">Massage body thư giãn</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">300000</field>
+            <field name="spa_category">massage</field>
+        </record>
+        <record id="product_service_massage_hot_stone" model="product.template">
+            <field name="name">Massage đá nóng</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">400000</field>
+            <field name="spa_category">massage</field>
+        </record>
+        <record id="product_service_massage_oil" model="product.template">
+            <field name="name">Massage tinh dầu</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">350000</field>
+            <field name="spa_category">massage</field>
+        </record>
+        <record id="product_service_massage_foot" model="product.template">
+            <field name="name">Massage chân</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">150000</field>
+            <field name="spa_category">massage</field>
+        </record>
+        <record id="product_service_massage_neck_shoulder" model="product.template">
+            <field name="name">Massage cổ vai gáy</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">120000</field>
+            <field name="spa_category">massage</field>
+        </record>
+        <record id="product_service_body_exfoliation" model="product.template">
+            <field name="name">Tẩy tế bào chết body</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">250000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_body_wrap" model="product.template">
+            <field name="name">Ủ dưỡng thể</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">300000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_hair_wash_relax" model="product.template">
+            <field name="name">Gội đầu thư giãn</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">120000</field>
+            <field name="spa_category">hair</field>
+        </record>
+        <record id="product_service_hair_wash_herbal" model="product.template">
+            <field name="name">Gội đầu thảo dược</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">180000</field>
+            <field name="spa_category">hair</field>
+        </record>
+        <record id="product_service_hair_wash_wellness" model="product.template">
+            <field name="name">Gội đầu dưỡng sinh</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">250000</field>
+            <field name="spa_category">hair</field>
+        </record>
+        <record id="product_service_scalp_massage" model="product.template">
+            <field name="name">Massage da đầu</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">100000</field>
+            <field name="spa_category">hair</field>
+        </record>
+        <record id="product_service_hair_scalp_care" model="product.template">
+            <field name="name">Chăm sóc tóc và da đầu</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">220000</field>
+            <field name="spa_category">hair</field>
+        </record>
+        <record id="product_service_hair_wash_neck_massage" model="product.template">
+            <field name="name">Gội đầu kết hợp massage cổ vai gáy</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">300000</field>
+            <field name="spa_category">hair</field>
+        </record>
+        <record id="product_service_facial_basic" model="product.template">
+            <field name="name">Làm sạch và chăm sóc da cơ bản</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">250000</field>
+            <field name="spa_category">facial</field>
+        </record>
+        <record id="product_service_facial_deep_care" model="product.template">
+            <field name="name">Chăm sóc da chuyên sâu</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">500000</field>
+            <field name="spa_category">spa_package</field>
+        </record>
+        <record id="product_service_facial_mask" model="product.template">
+            <field name="name">Đắp mặt nạ</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">80000</field>
+            <field name="spa_category">facial</field>
+        </record>
+        <record id="product_service_facial_massage" model="product.template">
+            <field name="name">Massage mặt</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">150000</field>
+            <field name="spa_category">facial</field>
+        </record>
+        <record id="product_service_facial_oily_dry_skin" model="product.template">
+            <field name="name">Chăm sóc da dầu, da khô</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">300000</field>
+            <field name="spa_category">facial</field>
+        </record>
+        <record id="product_service_facial_exfoliation" model="product.template">
+            <field name="name">Tẩy tế bào chết</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">120000</field>
+            <field name="spa_category">facial</field>
+        </record>
+        <record id="product_service_facial_specialized_device" model="product.template">
+            <field name="name">Chăm sóc da bằng thiết bị chuyên dụng</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">700000</field>
+            <field name="spa_category">spa_package</field>
+        </record>
+        <record id="product_service_hand_foot_care" model="product.template">
+            <field name="name">Chăm sóc bàn tay, bàn chân</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">70000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_back_care" model="product.template">
+            <field name="name">Chăm sóc da lưng</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">200000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_body_treatment_plan" model="product.template">
+            <field name="name">Chăm sóc body theo liệu trình</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">450000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_nail_cuticle_shape" model="product.template">
+            <field name="name">Cắt da, tạo form móng</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">40000</field>
+            <field name="spa_category">nail</field>
+        </record>
+        <record id="product_service_nail_gel_polish" model="product.template">
+            <field name="name">Sơn gel</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">150000</field>
+            <field name="spa_category">nail</field>
+        </record>
+        <record id="product_service_nail_extensions" model="product.template">
+            <field name="name">Đắp móng</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">250000</field>
+            <field name="spa_category">nail</field>
+        </record>
+        <record id="product_service_nail_art" model="product.template">
+            <field name="name">Vẽ móng</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">80000</field>
+            <field name="spa_category">nail</field>
+        </record>
+        <record id="product_service_nail_hand_foot_care" model="product.template">
+            <field name="name">Chăm sóc móng tay, móng chân</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">150000</field>
+            <field name="spa_category">nail</field>
+        </record>
+        <record id="product_service_facial_machine_care" model="product.template">
+            <field name="name">Chăm sóc da bằng máy</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">600000</field>
+            <field name="spa_category">spa_package</field>
+        </record>
+        <record id="product_service_skin_recovery" model="product.template">
+            <field name="name">Liệu trình phục hồi da</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">600000</field>
+            <field name="spa_category">spa_package</field>
+        </record>
+        <record id="product_service_body_care_plan" model="product.template">
+            <field name="name">Liệu trình chăm sóc body</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">500000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_herbal_steam" model="product.template">
+            <field name="name">Xông hơi thảo dược</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">150000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_salt_stone_steam" model="product.template">
+            <field name="name">Xông hơi đá muối</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">180000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_herbal_bath" model="product.template">
+            <field name="name">Tắm thảo dược</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">200000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_milk_bath" model="product.template">
+            <field name="name">Ngâm bồn sữa</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">220000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+        <record id="product_service_flower_bath" model="product.template">
+            <field name="name">Ngâm bồn hoa</field>
+            <field name="type">service</field>
+            <field name="sale_ok" eval="True"/>
+            <field name="purchase_ok" eval="False"/>
+            <field name="list_price">250000</field>
+            <field name="spa_category">body_care</field>
+        </record>
+    </data>
+</odoo>

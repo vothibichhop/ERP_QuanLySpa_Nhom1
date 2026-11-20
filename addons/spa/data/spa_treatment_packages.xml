@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="treatment_package_facial_basic_5" model="spa.treatment.package">
+            <field name="name">Gói chăm sóc da cơ bản - 5 buổi</field>
+            <field name="price">1000000</field>
+            <field name="validity_days">90</field>
+            <field name="line_ids" eval="[(0, 0, {
+                'product_id': ref('product_service_facial_basic'),
+                'session_count': 5
+            })]"/>
+        </record>
+        <record id="treatment_package_facial_deep_5" model="spa.treatment.package">
+            <field name="name">Gói chăm sóc da chuyên sâu - 5 buổi</field>
+            <field name="price">2250000</field>
+            <field name="validity_days">90</field>
+            <field name="line_ids" eval="[(0, 0, {
+                'product_id': ref('product_service_facial_deep_care'),
+                'session_count': 5
+            })]"/>
+        </record>
+        <record id="treatment_package_skin_recovery_5" model="spa.treatment.package">
+            <field name="name">Gói phục hồi da - 5 buổi</field>
+            <field name="price">2700000</field>
+            <field name="validity_days">120</field>
+            <field name="line_ids" eval="[(0, 0, {
+                'product_id': ref('product_service_skin_recovery'),
+                'session_count': 5
+            })]"/>
+        </record>
+        <record id="treatment_package_body_massage_5" model="spa.treatment.package">
+            <field name="name">Gói massage body thư giãn - 5 buổi</field>
+            <field name="price">1350000</field>
+            <field name="validity_days">90</field>
+            <field name="line_ids" eval="[(0, 0, {
+                'product_id': ref('product_service_massage_body_relax'),
+                'session_count': 5
+            })]"/>
+        </record>
+        <record id="treatment_package_hair_wellness_5" model="spa.treatment.package">
+            <field name="name">Gói gội đầu dưỡng sinh - 5 buổi</field>
+            <field name="price">1100000</field>
+            <field name="validity_days">90</field>
+            <field name="line_ids" eval="[(0, 0, {
+                'product_id': ref('product_service_hair_wash_wellness'),
+                'session_count': 5
+            })]"/>
+        </record>
+        <record id="treatment_package_body_care_5" model="spa.treatment.package">
+            <field name="name">Gói chăm sóc body - 5 buổi</field>
+            <field name="price">2000000</field>
+            <field name="validity_days">120</field>
+            <field name="line_ids" eval="[(0, 0, {
+                'product_id': ref('product_service_body_treatment_plan'),
+                'session_count': 5
+            })]"/>
+        </record>
+    </data>
+</odoo>

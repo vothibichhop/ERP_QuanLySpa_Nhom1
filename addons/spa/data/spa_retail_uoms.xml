@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <data noupdate="1">
+        <record id="uom_spa_bottle" model="uom.uom">
+            <field name="name">Chai</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit"/>
+            <field name="factor">1</field>
+            <field name="uom_type">bigger</field>
+            <field name="rounding">1</field>
+        </record>
+        <record id="uom_spa_jar" model="uom.uom">
+            <field name="name">Lọ</field>
+            <field name="category_id" ref="uom.product_uom_categ_unit"/>
+            <field name="factor">1</field>
+            <field name="uom_type">bigger</field>
+            <field name="rounding">1</field>
+        </record>
+    </data>
+</odoo>

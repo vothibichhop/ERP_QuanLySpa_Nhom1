@@ -1,0 +1,1035 @@
+import json
+import re
+from datetime import datetime, time, timedelta
+
+import pytz
+
+from odoo import api, fields, models
+from odoo.exceptions import AccessError, ValidationError
+
+
+class SpaAppointment(models.Model):
+    _name = 'spa.appointment'
+    _description = 'Lịch hẹn và liệu trình Spa'
+
+    name = fields.Char(string='Lịch hẹn', compute='_compute_name', store=True)
+    customer_id = fields.Many2one(
+        'res.partner',
+        string='Khách hàng',
+        required=True,
+        ondelete='restrict',
+    )
+    customer_phone = fields.Char(
+        string='Số điện thoại',
+    )
+    customer_address = fields.Char(
+        string='Địa chỉ',
+        related='customer_id.street',
+        readonly=False,
+    )
+    employee_id = fields.Many2one(
+        'hr.employee.public',
+        string='Nhân viên phụ trách',
+        domain=[('active', '=', True)],
+        ondelete='restrict',
+        help='Có thể để trống khi đặt lịch; phân công từ ngày trước ngày hẹn.',
+    )
+    can_assign_employees = fields.Boolean(
+        compute='_compute_can_assign_employees',
+    )
+    available_employee_ids = fields.Many2many(
+        'hr.employee.public',
+        compute='_compute_available_employee_ids',
+    )
+    room_id = fields.Many2one(
+        'spa.room',
+        string='Phòng',
+        domain=[('active', '=', True)],
+        ondelete='restrict',
+    )
+    bed_id = fields.Many2one(
+        'spa.bed',
+        string='Giường',
+        domain="[('room_id', '=', room_id), ('active', '=', True)]",
+        ondelete='restrict',
+    )
+    available_room_ids = fields.Many2many(
+        'spa.room',
+        compute='_compute_available_resources',
+    )
+    available_bed_ids = fields.Many2many(
+        'spa.bed',
+        compute='_compute_available_resources',
+    )
+    resource_grid = fields.Json(compute='_compute_available_resources')
+    booking_source = fields.Selection([
+        ('facebook', 'Facebook / Fanpage'),
+        ('zalo', 'Zalo'),
+        ('website', 'Website'),
+        ('phone', 'Gọi điện'),
+        ('walk_in', 'Đến trực tiếp'),
+    ], string='Nguồn booking')
+    service_id = fields.Many2one('spa.service', string='Dịch vụ cũ')
+    service_product_id = fields.Many2one(
+        'product.template',
+        string='Dịch vụ',
+        domain=[('type', '=', 'service')],
+        ondelete='restrict',
+    )
+    appointment_date = fields.Date(string='Ngày hẹn', required=True)
+    appointment_timezone = fields.Char(
+        default=lambda self: self.env.user.tz or 'UTC',
+        required=True,
+        readonly=True,
+    )
+    start_time = fields.Float(string='Giờ bắt đầu')
+    end_time = fields.Float(string='Giờ kết thúc dự kiến')
+    calendar_start = fields.Datetime(
+        string='Bắt đầu',
+        compute='_compute_calendar_times',
+        store=True,
+    )
+    calendar_end = fields.Datetime(
+        string='Kết thúc',
+        compute='_compute_calendar_times',
+        store=True,
+    )
+    guest_count = fields.Integer(string='Số lượng khách', required=True, default=1)
+    is_group_booking = fields.Boolean(compute='_compute_is_group_booking')
+    status = fields.Selection([
+        ('draft', 'Nháp'),
+        ('confirmed', 'Đã xác nhận'),
+        ('checked_in', 'Đã đến'),
+        ('in_progress', 'Đang thực hiện'),
+        ('done', 'Hoàn thành'),
+        ('cancelled', 'Đã hủy'),
+    ], string='Trạng thái lịch hẹn', required=True, default='draft')
+    sale_order_id = fields.Many2one(
+        'sale.order',
+        string='Đơn hàng',
+        readonly=True,
+        copy=False,
+        ondelete='restrict',
+    )
+    invoice_id = fields.Many2one(
+        'account.move',
+        string='Hóa đơn',
+        readonly=True,
+        copy=False,
+        ondelete='restrict',
+        domain=[('move_type', '=', 'out_invoice')],
+    )
+    invoice_payment_state = fields.Selection(
+        related='invoice_id.payment_state',
+        string='Trạng thái thanh toán',
+        readonly=True,
+    )
+    note = fields.Text(string='Ghi chú')
+
+    appointment_line_ids = fields.One2many(
+        'spa.appointment.line',
+        'appointment_id',
+        string='Dịch vụ đã chọn',
+        copy=True,
+    )
+    service_duration_minutes = fields.Integer(
+        string='Thời lượng phục vụ (phút)',
+        compute='_compute_service_duration',
+        store=True,
+    )
+    service_summary = fields.Char(
+        string='Dịch vụ / combo',
+        compute='_compute_service_summary',
+    )
+
+    @api.depends('appointment_date', 'status')
+    def _compute_can_assign_employees(self):
+        for appointment in self:
+            today = fields.Date.context_today(appointment)
+            appointment.can_assign_employees = bool(
+                appointment.appointment_date
+                and appointment.appointment_date <= today + timedelta(days=1)
+                and appointment.status not in ('done', 'cancelled', 'in_progress')
+            )
+
+    @api.depends('guest_count', 'bed_id')
+    def _compute_is_group_booking(self):
+        for appointment in self:
+            appointment.is_group_booking = bool(
+                appointment.guest_count > 1 and not appointment.bed_id
+            )
+
+    @api.constrains('appointment_date', 'employee_id')
+    def _check_employee_assignment_timing(self):
+        for appointment in self:
+            if (
+                not appointment.can_assign_employees
+                and appointment.status not in ('confirmed', 'checked_in')
+                and (
+                    appointment.employee_id
+                    or appointment.appointment_line_ids.filtered('employee_id')
+                )
+            ):
+                raise ValidationError(
+                    'Chỉ được phân công nhân viên từ ngày trước lịch hẹn.'
+                )
+
+    @api.depends(
+        'appointment_date',
+        'start_time',
+        'end_time',
+        'service_product_id',
+        'service_product_id.spa_employee_ids',
+        'appointment_line_ids.product_id',
+        'appointment_line_ids.product_id.spa_employee_ids',
+        'appointment_line_ids.employee_id',
+        'appointment_line_ids.combo_choice_ids.combo_item_id',
+        'appointment_line_ids.combo_choice_ids.combo_item_id.product_id.product_tmpl_id.spa_employee_ids',
+    )
+    def _compute_available_employee_ids(self):
+        active_employee_ids = set(
+            self.env['hr.employee.public'].search(
+                [('active', '=', True)]
+            ).ids
+        )
+        for appointment in self:
+            eligible_employee_ids = active_employee_ids.copy()
+            if not appointment.appointment_date:
+                appointment.available_employee_ids = [(5, 0, 0)]
+                continue
+
+            work_shifts = self.env['spa.work.shift'].search([
+                ('work_date', '=', appointment.appointment_date),
+                ('state', '=', 'scheduled'),
+            ])
+            scheduled_employee_ids = set(
+                work_shifts.mapped('employee_ids').ids
+            )
+            eligible_employee_ids.intersection_update(
+                scheduled_employee_ids
+            )
+            leave_requests = self.env['spa.leave.request'].search([
+                ('employee_id', 'in', list(eligible_employee_ids)),
+                ('state', 'in', ('submitted', 'approved')),
+                ('start_date', '<=', appointment.appointment_date),
+                ('end_date', '>=', appointment.appointment_date),
+            ])
+            eligible_employee_ids.difference_update(
+                leave_requests.mapped('employee_id').ids
+            )
+            assigned_line_product_ids = set()
+            for service_line in appointment.appointment_line_ids:
+                if service_line.employee_id:
+                    assigned_line_product_ids.update(
+                        service_line._get_service_products().ids
+                    )
+            for product in appointment._get_service_products():
+                if product.id in assigned_line_product_ids:
+                    continue
+                assigned_employee_ids = set(product.spa_employee_ids.ids)
+                if assigned_employee_ids:
+                    eligible_employee_ids.intersection_update(
+                        assigned_employee_ids
+                    )
+            if (
+                appointment.start_time is not False
+                and appointment.end_time is not False
+                and appointment.end_time > appointment.start_time
+                and eligible_employee_ids
+            ):
+                overlapping_domain = [
+                    ('appointment_date', '=', appointment.appointment_date),
+                    ('status', 'not in', ('cancelled', 'done')),
+                    ('start_time', '<', appointment.end_time),
+                    ('end_time', '>', appointment.start_time),
+                ]
+                if appointment._origin.id:
+                    overlapping_domain.append(
+                        ('id', '!=', appointment._origin.id)
+                    )
+                overlapping_domain.extend([
+                    '|',
+                    ('employee_id', 'in', list(eligible_employee_ids)),
+                    ('appointment_line_ids.employee_id', 'in',
+                     list(eligible_employee_ids)),
+                ])
+                overlapping_appointments = self.search(overlapping_domain)
+                busy_employee_ids = set(
+                    overlapping_appointments.mapped('employee_id').ids
+                )
+                busy_employee_ids.update(
+                    overlapping_appointments.mapped(
+                        'appointment_line_ids.employee_id'
+                    ).ids
+                )
+                eligible_employee_ids.difference_update(busy_employee_ids)
+            appointment.available_employee_ids = [
+                (6, 0, list(eligible_employee_ids))
+            ]
+
+    def _get_service_products(self):
+        self.ensure_one()
+        products = self.env['product.template']
+        if self.service_product_id and self.service_product_id.type == 'service':
+            products |= self.service_product_id
+        products |= self.appointment_line_ids.mapped('product_id').filtered(
+            lambda product: product.type == 'service'
+        )
+        products |= self.appointment_line_ids.mapped(
+            'combo_choice_ids.combo_item_id.product_id.product_tmpl_id'
+        ).filtered(lambda product: product.type == 'service')
+        return products
+
+    def _check_employee_service_eligibility(self):
+        for appointment in self:
+            if not appointment.employee_id:
+                continue
+            employee = self.env['hr.employee'].browse(
+                appointment.employee_id.id
+            )
+            assigned_line_product_ids = set()
+            for service_line in appointment.appointment_line_ids:
+                if service_line.employee_id:
+                    assigned_line_product_ids.update(
+                        service_line._get_service_products().ids
+                    )
+            for product in appointment._get_service_products():
+                if product.id in assigned_line_product_ids:
+                    continue
+                if (
+                    product.spa_employee_ids
+                    and employee.id not in product.spa_employee_ids.ids
+                ):
+                    raise ValidationError(
+                        f'Nhân viên {employee.name} chưa được phân công thực hiện '
+                        f'dịch vụ "{product.name}".'
+                    )
+
+    def _check_employee_work_shift(self):
+        for appointment in self:
+            if not appointment.employee_id:
+                continue
+            leave_request = self.env['spa.leave.request'].search([
+                ('employee_id', '=', appointment.employee_id.id),
+                ('state', 'in', ('submitted', 'approved')),
+                ('start_date', '<=', appointment.appointment_date),
+                ('end_date', '>=', appointment.appointment_date),
+            ], limit=1)
+            if leave_request:
+                raise ValidationError(
+                    f'Nhân viên {appointment.employee_id.name} đã xin nghỉ phép '
+                    f'từ {leave_request.start_date} đến {leave_request.end_date}, '
+                    'không thể xếp lịch hẹn trong ngày nghỉ.'
+                )
+            work_shift = self.env['spa.work.shift'].search([
+                ('work_date', '=', appointment.appointment_date),
+                ('employee_ids', '=', appointment.employee_id.id),
+                ('state', '=', 'scheduled'),
+            ], limit=1)
+            if not work_shift:
+                raise ValidationError(
+                    f'Nhân viên {appointment.employee_id.name} chưa có ca làm '
+                    f'việc ngày {appointment.appointment_date}.'
+                )
+
+    @api.depends(
+        'customer_id.name',
+        'service_product_id.name',
+        'appointment_line_ids.product_id.name',
+    )
+    def _compute_name(self):
+        for appointment in self:
+            parts = [appointment.customer_id.name or 'Lịch hẹn']
+            services = appointment.appointment_line_ids.mapped('product_id.name')
+            if services:
+                parts.extend(services)
+            elif appointment.service_product_id:
+                parts.append(appointment.service_product_id.name)
+            appointment.name = ' - '.join(parts)
+
+    @api.depends(
+        'appointment_line_ids.duration_minutes',
+        'guest_count',
+        'bed_id',
+    )
+    def _compute_service_duration(self):
+        for appointment in self:
+            durations = appointment.appointment_line_ids.mapped(
+                'duration_minutes'
+            )
+            appointment.service_duration_minutes = (
+                max(durations, default=0)
+                if appointment.is_group_booking
+                else sum(durations)
+            )
+
+    @api.depends(
+        'appointment_line_ids.product_id.name',
+        'appointment_line_ids.combo_choice_ids.combo_item_id.product_id.name',
+        'service_product_id.name',
+        'service_id.name',
+    )
+    def _compute_service_summary(self):
+        for appointment in self:
+            services = []
+            for line in appointment.appointment_line_ids:
+                name = line.product_id.name
+                if line.product_id.type == 'combo':
+                    components = line.combo_choice_ids.mapped(
+                        'combo_item_id.product_id.name'
+                    )
+                    if components:
+                        name = f"{name} ({', '.join(components)})"
+                services.append(name)
+            if not services and appointment.service_product_id:
+                services.append(appointment.service_product_id.name)
+            if not services and appointment.service_id:
+                services.append(appointment.service_id.name)
+            appointment.service_summary = ', '.join(services)
+
+    @api.onchange('appointment_line_ids', 'start_time')
+    def _onchange_appointment_services(self):
+        for appointment in self:
+            duration = appointment.service_duration_minutes
+            if duration and appointment.start_time is not False:
+                appointment.end_time = (
+                    appointment.start_time * 60 + duration
+                ) / 60
+        self._clear_unavailable_resources()
+
+    @api.onchange('guest_count')
+    def _onchange_guest_count(self):
+        for appointment in self:
+            if appointment.guest_count > 1:
+                appointment.employee_id = False
+                appointment.room_id = False
+                appointment.bed_id = False
+            duration = appointment.service_duration_minutes
+            if duration and appointment.start_time is not False:
+                appointment.end_time = (
+                    appointment.start_time * 60 + duration
+                ) / 60
+        self._clear_unavailable_resources()
+
+    @api.depends(
+        'appointment_date',
+        'start_time',
+        'end_time',
+        'appointment_line_ids.duration_minutes',
+        'appointment_line_ids.bed_id',
+    )
+    def _compute_available_resources(self):
+        room_model = self.env['spa.room']
+        bed_model = self.env['spa.bed']
+        for appointment in self:
+            active_rooms = room_model.search([('active', '=', True)])
+            active_beds = bed_model.search([
+                ('active', '=', True),
+                ('room_id', 'in', active_rooms.ids),
+            ])
+            occupied_bed_ids = set()
+            if (
+                not appointment.appointment_date
+                or appointment.start_time is False
+                or appointment.end_time is False
+                or appointment.end_time <= appointment.start_time
+            ):
+                available_beds = active_beds
+            else:
+                overlapping_domain = [
+                    ('appointment_date', '=', appointment.appointment_date),
+                    ('status', 'not in', ('cancelled', 'done')),
+                    ('start_time', '<', appointment.end_time),
+                    ('end_time', '>', appointment.start_time),
+                ]
+                if appointment._origin.id:
+                    overlapping_domain.append(('id', '!=', appointment._origin.id))
+                occupied_bed_ids = set()
+                overlapping_appointments = self.search(overlapping_domain)
+                current_interval = (
+                    appointment.start_time,
+                    appointment.end_time,
+                )
+                for other_appointment in overlapping_appointments:
+                    if other_appointment.bed_id:
+                        occupied_bed_ids.add(other_appointment.bed_id.id)
+                    for service_line in other_appointment.appointment_line_ids:
+                        if not service_line.bed_id:
+                            continue
+                        service_interval = (
+                            service_line._get_service_interval()
+                        )
+                        if service_line._intervals_overlap(
+                            current_interval, service_interval
+                        ):
+                            occupied_bed_ids.add(service_line.bed_id.id)
+                available_beds = active_beds.filtered(
+                    lambda bed: bed.id not in occupied_bed_ids
+                )
+            appointment.available_bed_ids = available_beds
+            available_room_ids = set(available_beds.mapped('room_id').ids)
+            appointment.available_room_ids = active_rooms.filtered(
+                lambda room: room.id in available_room_ids
+            )
+            appointment.resource_grid = [
+                {
+                    'id': room.id,
+                    'name': room.display_name,
+                    'available': room.id in available_room_ids,
+                    'beds': [
+                        {
+                            'id': bed.id,
+                            'name': bed.display_name,
+                            'available': bed.id not in occupied_bed_ids,
+                        }
+                        for bed in active_beds.filtered(
+                            lambda bed: bed.room_id == room
+                        )
+                    ],
+                }
+                for room in active_rooms
+            ]
+
+    @api.onchange('appointment_date', 'start_time', 'end_time')
+    def _onchange_resource_availability(self):
+        self._clear_unavailable_resources()
+
+    def _clear_unavailable_resources(self):
+        for appointment in self:
+            if appointment.is_group_booking:
+                appointment.appointment_line_ids._compute_available_bed_ids()
+
+            if (
+                appointment._origin.id
+                and appointment.room_id
+                and appointment.room_id not in appointment.available_room_ids
+            ):
+                appointment.room_id = False
+                appointment.bed_id = False
+            elif (
+                appointment._origin.id
+                and appointment.bed_id
+                and appointment.bed_id not in appointment.available_bed_ids
+            ):
+                appointment.bed_id = False
+
+            if (
+                appointment._origin.id
+                and appointment.employee_id
+                and appointment.employee_id not in appointment.available_employee_ids
+            ):
+                appointment.employee_id = False
+            for service_line in appointment.appointment_line_ids:
+                if (
+                    not appointment.is_group_booking
+                    and service_line.bed_id
+                    and service_line.bed_id not in service_line.available_bed_ids
+                ):
+                    service_line.bed_id = False
+                if (
+                    appointment._origin.id
+                    and service_line.employee_id
+                    and service_line.employee_id
+                    not in service_line.available_employee_ids
+                ):
+                    service_line.employee_id = False
+
+    @api.onchange('room_id')
+    def _onchange_room_id(self):
+        if self.bed_id and self.bed_id.room_id != self.room_id:
+            self.bed_id = False
+
+    @api.onchange('bed_id')
+    def _onchange_bed_id(self):
+        if self.bed_id:
+            self.room_id = self.bed_id.room_id
+
+    @api.onchange('customer_phone')
+    def _onchange_customer_phone(self):
+        for appointment in self:
+            phone = re.sub(r'\D', '', appointment.customer_phone or '')
+            appointment.customer_id = False
+            if len(phone) != 10:
+                continue
+
+            phone_suffix = phone[-6:]
+            candidates = self.env['res.partner'].with_context(
+                active_test=False
+            ).search([
+                '|',
+                ('phone', 'ilike', phone_suffix),
+                ('mobile', 'ilike', phone_suffix),
+            ], limit=100)
+            matching_customers = candidates.filtered(
+                lambda partner: any(
+                    re.sub(r'\D', '', number or '') == phone
+                    for number in (partner.phone, partner.mobile)
+                )
+            )
+            if len(matching_customers) == 1:
+                customer = matching_customers
+                appointment.customer_id = customer
+                return {
+                    'warning': {
+                        'title': 'Đã tìm thấy khách hàng',
+                        'message': (
+                            f'Đã tìm thấy hồ sơ CRM "{customer.display_name}" '
+                            'và tự động chọn khách hàng này.'
+                        ),
+                        'type': 'notification',
+                    },
+                }
+            if len(matching_customers) > 1:
+                return {
+                    'warning': {
+                        'title': 'Có nhiều khách hàng trùng số điện thoại',
+                        'message': (
+                            'Vui lòng chọn đúng khách hàng CRM trong trường '
+                            '"Khách hàng".'
+                        ),
+                        'type': 'notification',
+                    },
+                }
+            return {
+                'warning': {
+                    'title': 'Chưa có hồ sơ khách hàng',
+                    'message': (
+                        'Không tìm thấy khách hàng CRM với số điện thoại này. '
+                        'Hãy tạo hoặc chọn hồ sơ khách hàng trước khi lưu lịch hẹn.'
+                    ),
+                    'type': 'notification',
+                },
+            }
+
+    @api.onchange('customer_id')
+    def _onchange_customer_id(self):
+        for appointment in self:
+            if appointment.customer_id:
+                customer_phone = (
+                    appointment.customer_id.phone
+                    or appointment.customer_id.mobile
+                )
+                if customer_phone:
+                    appointment.customer_phone = customer_phone
+
+    def action_confirm(self):
+        self.ensure_one()
+        if self.status != 'draft':
+            raise ValidationError('Chỉ lịch nháp mới có thể xác nhận.')
+        self.status = 'confirmed'
+
+    def action_check_in(self):
+        self.ensure_one()
+        if self.status != 'confirmed':
+            raise ValidationError('Chỉ lịch đã xác nhận mới có thể chuyển sang Đã đến.')
+        self.status = 'checked_in'
+
+    def action_start(self):
+        self.ensure_one()
+        if self.status != 'checked_in':
+            raise ValidationError('Chỉ khách đã đến mới có thể bắt đầu thực hiện dịch vụ.')
+        if self.is_group_booking and self.appointment_line_ids.filtered(
+            lambda line: not line.bed_id
+        ):
+            raise ValidationError(
+                'Vui lòng chọn giường cho từng khách trước khi bắt đầu.'
+            )
+        if self.is_group_booking and self.appointment_line_ids.filtered(
+            lambda line: not line.employee_id
+        ):
+            raise ValidationError(
+                'Vui lòng phân công nhân viên cho từng khách trước khi bắt đầu.'
+            )
+        if not self.employee_id and (
+            not self.appointment_line_ids
+            or self.appointment_line_ids.filtered(
+                lambda line: not line.employee_id
+            )
+        ):
+            raise ValidationError(
+                'Vui lòng phân công nhân viên thực hiện cho tất cả dịch vụ '
+                'trước khi bắt đầu.'
+            )
+        self.status = 'in_progress'
+
+    def action_done(self):
+        self.ensure_one()
+        if not self.env.user.has_group('spa.group_spa_billing_user'):
+            raise AccessError(
+                'Bạn cần quyền Spa Billing User để hoàn tất dịch vụ và lập hóa đơn.'
+            )
+        if self.status != 'in_progress':
+            raise ValidationError('Chỉ dịch vụ đang thực hiện mới có thể hoàn thành.')
+        material_quantities = self._get_spa_service_material_quantities()
+        if material_quantities and not self.env.context.get(
+            'spa_materials_confirmed'
+        ):
+            wizard = self.env[
+                'spa.material.consumption.wizard'
+            ].create_for_appointment(self, material_quantities)
+            return wizard.action_open()
+
+        order_lines = []
+        combo_selections = []
+        if self.appointment_line_ids:
+            for index, line in enumerate(self.appointment_line_ids):
+                description = line.product_id.name
+                components = line.combo_choice_ids.mapped(
+                    'combo_item_id.product_id.product_tmpl_id.name'
+                )
+                if components:
+                    description = f"{description} ({', '.join(components)})"
+                order_lines.append(
+                    self._prepare_order_line(
+                        line.product_id,
+                        description,
+                        sequence=(index + 1) * 10,
+                        employee=line.employee_id or self.employee_id,
+                    )
+                )
+                if line.product_id.type == 'combo':
+                    combo_choices = line.combo_choice_ids.sorted(
+                        key=lambda choice: line.product_id.combo_ids.ids.index(
+                            choice.combo_id.id
+                        )
+                    )
+                    combo_selections.append((
+                        (index + 1) * 10,
+                        [{
+                            'product_id': choice.combo_item_id.product_id.id,
+                            'combo_item_id': choice.combo_item_id.id,
+                            'no_variant_attribute_value_ids': [],
+                            'product_custom_attribute_values': [],
+                        } for choice in combo_choices],
+                    ))
+        elif self.service_product_id:
+            order_lines.append(
+                self._prepare_order_line(
+                    self.service_product_id, employee=self.employee_id
+                )
+            )
+        elif self.service_id:
+            products = self.env['product.template'].search([
+                ('name', '=', self.service_id.name),
+                ('type', '=', 'service'),
+            ], limit=2)
+            if len(products) != 1:
+                raise ValidationError(
+                    'Không thể lập hóa đơn cho dịch vụ cũ này. '
+                    'Hãy liên kết dịch vụ với một sản phẩm dịch vụ Spa.'
+                )
+            order_lines.append(
+                self._prepare_order_line(products, employee=self.employee_id)
+            )
+
+        if not order_lines:
+            raise ValidationError('Không có dịch vụ để tạo đơn hàng.')
+
+        order = self.env['sale.order'].create({
+            'partner_id': self.customer_id.id,
+            'origin': self.name,
+            'spa_appointment_id': self.id,
+            'order_line': [
+                fields.Command.create(line_vals) for line_vals in order_lines
+            ],
+        })
+        for sequence, selected_items in combo_selections:
+            order_line = order.order_line.filtered(
+                lambda line: line.sequence == sequence and line.product_type == 'combo'
+            )
+            order_line.selected_combo_items = json.dumps(selected_items)
+        if combo_selections:
+            order._onchange_order_line()
+        order.order_line.filtered(
+            lambda line: not line.display_type
+        ).write({'qty_delivered': 1})
+        self._consume_spa_service_materials(
+            quantity_by_product=(
+                self.env.context.get('spa_material_quantities')
+                if self.env.context.get('spa_materials_confirmed')
+                else material_quantities
+            )
+        )
+        self.write({
+            'status': 'done',
+            'sale_order_id': order.id,
+        })
+        return self.action_open_sale_order()
+
+    def _award_loyalty_points(self):
+        self.ensure_one()
+        invoice = self.invoice_id
+        if (
+            not invoice
+            or invoice.state != 'posted'
+            or invoice.payment_state != 'paid'
+        ):
+            return
+
+        transaction_model = self.env['customer.loyalty.transaction'].sudo()
+        transaction_domain = [('appointment_id', '=', self.id)]
+        if self.sale_order_id:
+            transaction_domain = [
+                '|',
+                ('appointment_id', '=', self.id),
+                ('sale_order_id', '=', self.sale_order_id.id),
+            ]
+        existing_transaction = transaction_model.search(
+            transaction_domain,
+            limit=1,
+        )
+        if existing_transaction:
+            return existing_transaction
+
+        vnd_currency = self.env.ref('base.VND')
+        amount_vnd = invoice.currency_id._convert(
+            invoice.amount_total,
+            vnd_currency,
+            invoice.company_id,
+            fields.Date.context_today(self),
+        )
+        points = int(amount_vnd / 10_000)
+        if points <= 0:
+            return
+
+        transaction = transaction_model.create({
+            'name': f'Tích điểm từ lịch hẹn {self.display_name}',
+            'partner_id': self.customer_id.id,
+            'appointment_id': self.id,
+            'date': fields.Date.context_today(self),
+            'transaction_type': 'earn',
+            'points': points,
+            'note': (
+                f'Tự động cộng {points} điểm từ tổng chi tiêu '
+                f'{vnd_currency.round(amount_vnd):,.0f} VND.'
+            ),
+        })
+        transaction.action_apply_points()
+
+    def _prepare_order_line(
+        self, product, description=None, sequence=10, employee=None,
+    ):
+        values = {
+            'product_id': product.product_variant_id.id,
+            'name': description or product.name,
+            'product_uom_qty': 1,
+            'price_unit': product.list_price,
+            'sequence': sequence,
+            'spa_employee_id': employee.id if employee else False,
+        }
+        return values
+
+    def action_open_sale_order(self):
+        self.ensure_one()
+        if not self.sale_order_id:
+            raise ValidationError('Lịch hẹn này chưa có đơn hàng.')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Đơn hàng Spa',
+            'res_model': 'sale.order',
+            'view_mode': 'form',
+            'res_id': self.sale_order_id.id,
+            'target': 'current',
+        }
+
+    def action_open_invoice(self):
+        self.ensure_one()
+        if not self.env.user.has_group('spa.group_spa_billing_user'):
+            raise AccessError(
+                'Bạn cần quyền Spa Billing User để xem hóa đơn và ghi nhận thanh toán.'
+            )
+        if not self.invoice_id:
+            raise ValidationError('Lịch hẹn này chưa có hóa đơn.')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Hóa đơn thanh toán',
+            'res_model': 'account.move',
+            'view_mode': 'form',
+            'res_id': self.invoice_id.id,
+            'target': 'current',
+        }
+
+    def action_cancel(self):
+        self.ensure_one()
+        if self.status in ('done', 'cancelled'):
+            raise ValidationError('Lịch đã hoàn thành hoặc đã hủy, không thể hủy thêm.')
+        self.status = 'cancelled'
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        defaults = self.default_get([
+            'room_id', 'bed_id', 'start_time', 'end_time',
+        ])
+        for vals in vals_list:
+            guest_count = vals.get('guest_count', 1)
+            bed_id = vals.get('bed_id', defaults.get('bed_id'))
+            is_group_booking = guest_count > 1 and not bed_id
+            if not is_group_booking:
+                if not vals.get('room_id', defaults.get('room_id')):
+                    raise ValidationError('Vui lòng chọn phòng Spa.')
+                if not bed_id:
+                    raise ValidationError('Vui lòng chọn giường Spa.')
+            if vals.get('start_time', defaults.get('start_time')) is False:
+                raise ValidationError('Vui lòng chọn giờ bắt đầu.')
+            if vals.get('end_time', defaults.get('end_time')) is False:
+                raise ValidationError('Vui lòng chọn giờ kết thúc.')
+        return super().create(vals_list)
+
+    @api.depends('appointment_date', 'appointment_timezone', 'start_time', 'end_time')
+    def _compute_calendar_times(self):
+        for appointment in self:
+            if (
+                appointment.appointment_date
+                and appointment.start_time is not False
+                and appointment.end_time is not False
+            ):
+                date = fields.Date.to_date(appointment.appointment_date)
+                local_midnight = datetime.combine(date, time.min)
+                local_start = local_midnight + timedelta(hours=appointment.start_time)
+                local_end = local_midnight + timedelta(hours=appointment.end_time)
+                timezone = pytz.timezone(appointment.appointment_timezone or 'UTC')
+                appointment.calendar_start = timezone.localize(
+                    local_start
+                ).astimezone(pytz.UTC).replace(tzinfo=None)
+                appointment.calendar_end = timezone.localize(
+                    local_end
+                ).astimezone(pytz.UTC).replace(tzinfo=None)
+            else:
+                appointment.calendar_start = False
+                appointment.calendar_end = False
+
+    @api.constrains('customer_phone')
+    def _check_customer_phone(self):
+        for appointment in self:
+            phone = re.sub(r'\D', '', appointment.customer_phone or '')
+            if not re.fullmatch(r'[0-9]{10}', phone):
+                raise ValidationError('Số điện thoại phải gồm đúng 10 chữ số.')
+
+    @api.constrains(
+        'appointment_date', 'guest_count', 'start_time', 'end_time',
+        'employee_id', 'room_id', 'bed_id', 'status',
+        'service_id', 'service_product_id', 'appointment_line_ids',
+    )
+    def _check_appointment_values(self):
+        for appointment in self:
+            if (
+                not appointment.service_id
+                and not appointment.service_product_id
+                and not appointment.appointment_line_ids
+            ):
+                raise ValidationError('Vui lòng chọn ít nhất một dịch vụ hoặc combo.')
+            if appointment.guest_count < 1:
+                raise ValidationError('Số lượng khách phải lớn hơn 0.')
+            if appointment.is_group_booking:
+                if len(appointment.appointment_line_ids) != appointment.guest_count:
+                    raise ValidationError(
+                        'Mỗi khách cần đúng một dòng dịch vụ. '
+                        'Số dòng dịch vụ phải bằng số lượng khách.'
+                    )
+                if appointment.employee_id:
+                    raise ValidationError(
+                        'Với lịch nhóm, hãy phân công nhân viên riêng cho từng dịch vụ.'
+                    )
+                if appointment.appointment_line_ids.filtered(
+                    lambda line: not line.bed_id
+                ):
+                    raise ValidationError(
+                        'Vui lòng chọn một giường riêng cho từng khách.'
+                    )
+                bed_ids = appointment.appointment_line_ids.mapped('bed_id').ids
+                if len(bed_ids) != len(set(bed_ids)):
+                    raise ValidationError(
+                        'Không thể chọn cùng một giường cho nhiều khách.'
+                    )
+                employee_ids = appointment.appointment_line_ids.filtered(
+                    'employee_id'
+                ).mapped('employee_id').ids
+                if len(employee_ids) != len(set(employee_ids)):
+                    raise ValidationError(
+                        'Không thể phân công cùng một nhân viên cho nhiều khách '
+                        'cùng lúc.'
+                    )
+            else:
+                if not appointment.room_id or not appointment.bed_id:
+                    raise ValidationError(
+                        'Vui lòng chọn phòng và giường Spa.'
+                    )
+                if appointment.bed_id.room_id != appointment.room_id:
+                    raise ValidationError(
+                        'Giường được chọn không thuộc phòng đã chọn.'
+                    )
+            if appointment.appointment_date < fields.Date.context_today(appointment):
+                raise ValidationError('Ngày hẹn không được là ngày trong quá khứ.')
+            if not 0 <= appointment.start_time < 24 or not 0 <= appointment.end_time < 24:
+                raise ValidationError('Giờ hẹn phải nằm trong khoảng từ 00:00 đến trước 24:00.')
+            if appointment.end_time <= appointment.start_time:
+                raise ValidationError('Giờ kết thúc phải sau giờ bắt đầu.')
+            if (
+                appointment.service_duration_minutes
+                and appointment.end_time * 60
+                < appointment.start_time * 60 + appointment.service_duration_minutes
+            ):
+                raise ValidationError(
+                    'Thời gian kết thúc phải đủ cho tổng thời lượng các dịch vụ đã chọn.'
+                )
+            appointment._check_employee_service_eligibility()
+            if appointment.status in ('cancelled', 'done'):
+                continue
+            appointment._check_employee_work_shift()
+            for service_line in appointment.appointment_line_ids:
+                if (
+                    service_line.employee_id
+                    and service_line.employee_id
+                    not in service_line.available_employee_ids
+                ):
+                    raise ValidationError(
+                        f'Nhân viên {service_line.employee_id.name} không còn '
+                        'khả dụng trong thời gian thực hiện dịch vụ.'
+                    )
+                if (
+                    appointment.is_group_booking
+                    and service_line.bed_id
+                    and service_line.bed_id
+                    not in service_line.available_bed_ids
+                ):
+                    raise ValidationError(
+                        f'Giường {service_line.bed_id.display_name} không còn '
+                        'khả dụng trong thời gian thực hiện dịch vụ.'
+                    )
+
+            if appointment.is_group_booking:
+                continue
+
+            overlapping_domain = [
+                ('id', '!=', appointment.id),
+                ('appointment_date', '=', appointment.appointment_date),
+                ('status', 'not in', ('cancelled', 'done')),
+                ('start_time', '<', appointment.end_time),
+                ('end_time', '>', appointment.start_time),
+            ]
+            assigned_employee_ids = set(
+                appointment.appointment_line_ids.mapped('employee_id').ids
+            )
+            if appointment.employee_id:
+                assigned_employee_ids.add(appointment.employee_id.id)
+            if assigned_employee_ids:
+                overlapping_domain.extend([
+                    '|',
+                    '|',
+                    ('employee_id', 'in', list(assigned_employee_ids)),
+                    ('appointment_line_ids.employee_id', 'in',
+                     list(assigned_employee_ids)),
+                    ('bed_id', '=', appointment.bed_id.id),
+                ])
+            else:
+                overlapping_domain.append(
+                    ('bed_id', '=', appointment.bed_id.id)
+                )
+            overlapping_appointment = self.search(
+                overlapping_domain,
+                limit=1,
+            )
+            if overlapping_appointment:
+                raise ValidationError(
+                    'Nhân viên hoặc giường đã có lịch hẹn trong khoảng thời gian này.'
+                )
